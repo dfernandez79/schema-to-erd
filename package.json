@@ -1,0 +1,21 @@
+{
+  "name": "schema-to-erd",
+  "module": "src/cli.ts",
+  "type": "module",
+  "private": true,
+  "bin": {
+    "schema-to-erd": "./src/cli.ts"
+  },
+  "scripts": {
+    "start": "bun run src/cli.ts",
+    "test": "bun test",
+    "test:unit": "SKIP_DB_TESTS=1 bun test"
+  },
+  "devDependencies": {
+    "@testcontainers/postgresql": "^11.0.0",
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^7"
+  }
+}
