@@ -1,0 +1,18 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "useTabs": false,
+  "tabWidth": 2,
+  "arrowParens": "avoid",
+  "printWidth": 100,
+  "sortImports": true,
+  "sortPackageJson": true,
+  "overrides": [
+    {
+      "files": ["*.md", "*.mdx"],
+      "options": {
+        "printWidth": 80,
+        "proseWrap": "always"
+      }
+    }
+  ]
+}

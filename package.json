@@ -1,21 +1,37 @@
 {
-  "name": "schema-to-erd",
-  "module": "src/cli.ts",
-  "type": "module",
-  "private": true,
+  "name": "@diegoux/schema-to-erd",
   "bin": {
-    "schema-to-erd": "./src/cli.ts"
+    "schema-to-erd": "./src/schema-to-erd.ts"
   },
+  "type": "module",
+  "module": "src/schema-to-erd.ts",
   "scripts": {
-    "start": "bun run src/cli.ts",
+    "start": "bun run src/schema-to-erd.ts",
     "test": "bun test",
-    "test:unit": "SKIP_DB_TESTS=1 bun test"
+    "test:unit": "SKIP_DB_TESTS=1 bun test",
+    "typecheck": "tsc --noEmit",
+    "lint": "oxlint",
+    "lint:fix": "oxlint --fix",
+    "fmt": "oxfmt",
+    "fmt:check": "oxfmt --check",
+    "prepare": "husky"
   },
   "devDependencies": {
-    "@testcontainers/postgresql": "^11.0.0",
-    "@types/bun": "latest"
+    "@testcontainers/postgresql": "^12.1.0",
+    "@types/bun": "latest",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.5.1",
+    "oxfmt": "^0.67.0",
+    "oxlint": "^1.82.0"
   },
   "peerDependencies": {
     "typescript": "^7"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx,mjs,cjs}": [
+      "oxlint --fix",
+      "oxfmt --no-error-on-unmatched-pattern"
+    ],
+    "*.{json,jsonc,md,mdx,toml,yml,yaml}": "oxfmt --no-error-on-unmatched-pattern"
   }
 }

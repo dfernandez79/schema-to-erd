@@ -1,6 +1,20 @@
-export type TypeMode = "none" | "base" | "full";
+import type { BunFile } from "bun";
 
-export interface Column {
+type TypeMode = "none" | "base" | "full";
+
+type Options = {
+  connectionString: string;
+  schema?: string;
+  tables?: string[];
+  excludeFields?: RegExp[];
+  types?: TypeMode;
+  nullableMarkers?: boolean;
+  output?: string;
+};
+
+type Output = Pick<BunFile, "write">;
+
+type Column = {
   name: string;
   /** Attribute number, i.e. physical order in the table definition. */
   ordinal: number;
@@ -12,23 +26,25 @@ export interface Column {
   isPrimaryKey: boolean;
   isForeignKey: boolean;
   isUnique: boolean;
-}
+};
 
-export interface Table {
+type Table = {
   schema: string;
   name: string;
   columns: Column[];
-}
+};
 
-export interface Edge {
+type Edge = {
   table: string;
   column: string;
   refTable: string;
   refColumn: string;
-}
+};
 
-export interface Schema {
+type Schema = {
   schema: string;
   tables: Table[];
   edges: Edge[];
-}
+};
+
+export type { Options, Column, Edge, Output, Schema, Table, TypeMode };
