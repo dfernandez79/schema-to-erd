@@ -4,6 +4,7 @@ import { RunError } from "./errors.ts";
 import { excludeFields } from "./exclude-fields.ts";
 import { introspect } from "./introspect.ts";
 import { type RenderOptions, renderD2 } from "./render-d2.ts";
+import { renderExcalidraw } from "./render-excalidraw.ts";
 import { renderSvg } from "./render-svg.ts";
 import type { Format, Options, Output, Schema } from "./types.ts";
 
@@ -13,6 +14,7 @@ const RENDERERS: Record<
 > = {
   d2: renderD2,
   svg: renderSvg,
+  excalidraw: renderExcalidraw,
 };
 
 const cli = async (

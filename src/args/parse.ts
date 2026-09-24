@@ -6,12 +6,13 @@ import type { Format, Options, TypeMode } from "../types.ts";
 
 const TYPE_MODES: readonly string[] = ["none", "base", "full"] satisfies TypeMode[];
 
-const FORMATS: readonly string[] = ["d2", "svg"] satisfies Format[];
+const FORMATS: readonly string[] = ["d2", "svg", "excalidraw"] satisfies Format[];
 
 /** The format an `--output` extension implies when `--format` is not given. */
 const FORMAT_BY_EXTENSION: Record<string, Format> = {
   ".d2": "d2",
   ".svg": "svg",
+  ".excalidraw": "excalidraw",
 };
 
 const parse = (argv: string[], env: Record<string, string | undefined>): Options => {

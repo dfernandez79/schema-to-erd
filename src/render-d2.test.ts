@@ -112,6 +112,16 @@ describe("renderD2", () => {
     );
   });
 
+  test("fixes a table's box when given its size", () => {
+    const schema = schemaOf([table("t", [column("id")]), table("u", [column("id")])]);
+    const output = renderD2(schema, {
+      ...BASE,
+      tableSizes: new Map([["t", { width: 120, height: 80 }]]),
+    });
+    expect(output).toContain(`"t": {\n  shape: sql_table\n  width: 120\n  height: 80\n  "id"`);
+    expect(output).toContain(`"u": {\n  shape: sql_table\n  "id"`);
+  });
+
   test("quotes identifiers that collide with D2 keywords", () => {
     const output = renderD2(
       schemaOf([table("shape", [column("style"), column("width"), column("label")])]),

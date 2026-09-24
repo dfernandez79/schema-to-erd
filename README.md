@@ -21,6 +21,7 @@ schema-to-erd --tables=orders,order_items --schema=sales
 schema-to-erd --tables=orders --exclude-fields='orders\.updatedAt'
 schema-to-erd --types=none --output=erd.d2
 schema-to-erd --tables=orders,users --output=erd.svg
+schema-to-erd --output=erd.excalidraw
 schema-to-erd --help
 ```
 
@@ -29,15 +30,16 @@ The connection is specified by `--database` and falls back to `$DATABASE_URL`.
 
 ## Output formats
 
-| Format | Output                                                                   |
-| ------ | ------------------------------------------------------------------------ |
-| `d2`   | D2 source. The default.                                                  |
-| `svg`  | SVG, rendered by D2's bundled WebAssembly build. No `d2` install needed. |
+| Format       | Output                                                                   |
+| ------------ | ------------------------------------------------------------------------ |
+| `d2`         | D2 source. The default.                                                  |
+| `svg`        | SVG, rendered by D2's bundled WebAssembly build. No `d2` install needed. |
+| `excalidraw` | Excalidraw scene, to open and keep editing in Excalidraw.                |
 
 `--format` picks the format. Without it, the `--output` extension decides
-(`.d2`, `.svg`), and any other extension, or stdout, gets D2. A `--format` that
-contradicts the extension is a usage error: `--format=svg --output=erd.d2` fails
-instead of writing SVG into a `.d2` file.
+(`.d2`, `.svg`, `.excalidraw`), and any other extension, or stdout, gets D2. A
+`--format` that contradicts the extension is a usage error:
+`--format=svg --output=erd.d2` fails instead of writing SVG into a `.d2` file.
 
 SVG output is laid out with the ELK engine, as `d2 --layout=elk` would. To use
 another engine, such as TALA, render the D2 source with the `d2` CLI. Avoid D2's
@@ -48,20 +50,26 @@ specific row:
 schema-to-erd --tables=orders,users | d2 --layout=tala - erd.svg
 ```
 
+Excalidraw output uses the same ELK layout, with tables sized for Excalidraw's
+hand-drawn font. Each table is a group, and each arrow is bound to the rows it
+joins, so moving a table in Excalidraw re-routes its arrows. Element ids come
+from table and column names, so the same schema always produces the same file
+and a schema change produces a small diff.
+
 ## Options
 
-| Flag                       | Meaning                                        |
-| -------------------------- | ---------------------------------------------- |
-| `--database=<url>`         | Connection URL. Defaults to `$DATABASE_URL`.   |
-| `--tables=a,b`             | Only these tables. Omit for the whole schema.  |
-| `--schema=<name>`          | Schema to read. Default `public`.              |
-| `--types=none\|base\|full` | Type detail. Default `base`.                   |
-| `--hide-types`             | Alias for `--types=none`.                      |
-| `--no-nullable-markers`    | Drop the `?` suffix on nullable columns.       |
-| `--exclude-fields=<re>`    | Drop matching columns. Repeatable.             |
-| `--format=d2\|svg`         | Output format. Default from `--output`, or d2. |
-| `--output=<path>`          | Write to a file instead of stdout. Overwrites. |
-| `-h`, `--help`             | Show help.                                     |
+| Flag                           | Meaning                                        |
+| ------------------------------ | ---------------------------------------------- |
+| `--database=<url>`             | Connection URL. Defaults to `$DATABASE_URL`.   |
+| `--tables=a,b`                 | Only these tables. Omit for the whole schema.  |
+| `--schema=<name>`              | Schema to read. Default `public`.              |
+| `--types=none\|base\|full`     | Type detail. Default `base`.                   |
+| `--hide-types`                 | Alias for `--types=none`.                      |
+| `--no-nullable-markers`        | Drop the `?` suffix on nullable columns.       |
+| `--exclude-fields=<re>`        | Drop matching columns. Repeatable.             |
+| `--format=d2\|svg\|excalidraw` | Output format. Default from `--output`, or d2. |
+| `--output=<path>`              | Write to a file instead of stdout. Overwrites. |
+| `-h`, `--help`                 | Show help.                                     |
 
 ### Type detail
 

@@ -96,7 +96,7 @@ describe("parse: format", () => {
   });
 
   test("accepts each format", () => {
-    for (const format of ["d2", "svg"] as const) {
+    for (const format of ["d2", "svg", "excalidraw"] as const) {
       expect(parse([`--format=${format}`], ENV).format).toBe(format);
     }
   });
@@ -105,6 +105,7 @@ describe("parse: format", () => {
     expect(parse(["--output=erd.svg"], ENV).format).toBe("svg");
     expect(parse(["--output=ERD.SVG"], ENV).format).toBe("svg");
     expect(parse(["--output=erd.d2"], ENV).format).toBe("d2");
+    expect(parse(["--output=docs/erd.excalidraw"], ENV).format).toBe("excalidraw");
   });
 
   test("falls back to d2 for an extension that implies nothing", () => {
@@ -121,6 +122,7 @@ describe("parse: format", () => {
     expect(() => parse(["--format=svg", "--output=erd.d2"], ENV)).toThrow(
       /--format=svg conflicts with --output=erd.d2/,
     );
+    expect(() => parse(["--format=d2", "--output=erd.excalidraw"], ENV)).toThrow(UsageError);
   });
 
   test("rejects an unknown format", () => {

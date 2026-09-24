@@ -2,7 +2,7 @@ import type { BunFile } from "bun";
 
 type TypeMode = "none" | "base" | "full";
 
-type Format = "d2" | "svg";
+type Format = "d2" | "svg" | "excalidraw";
 
 type Options = {
   connectionString: string;
