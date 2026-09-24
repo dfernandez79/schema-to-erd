@@ -20,18 +20,32 @@ schema-to-erd --database=postgres://user:pass@localhost/shop
 schema-to-erd --tables=orders,order_items --schema=sales
 schema-to-erd --tables=orders --exclude-fields='orders\.updatedAt'
 schema-to-erd --types=none --output=erd.d2
+schema-to-erd --tables=orders,users --output=erd.svg
 schema-to-erd --help
 ```
 
 The connection is specified by `--database` and falls back to `$DATABASE_URL`.
 `--database` accepts a full `postgres://` or `postgresql://` URL.
 
-Render the result using the `d2` CLI. Use the ELK or TALA layout engine; with
-the default engine, foreign key arrows point to the table box rather than the
+## Output formats
+
+| Format | Output                                                                   |
+| ------ | ------------------------------------------------------------------------ |
+| `d2`   | D2 source. The default.                                                  |
+| `svg`  | SVG, rendered by D2's bundled WebAssembly build. No `d2` install needed. |
+
+`--format` picks the format. Without it, the `--output` extension decides
+(`.d2`, `.svg`), and any other extension, or stdout, gets D2. A `--format` that
+contradicts the extension is a usage error: `--format=svg --output=erd.d2` fails
+instead of writing SVG into a `.d2` file.
+
+SVG output is laid out with the ELK engine, as `d2 --layout=elk` would. To use
+another engine, such as TALA, render the D2 source with the `d2` CLI. Avoid D2's
+default engine, which points foreign key arrows to the table box rather than the
 specific row:
 
 ```bash
-schema-to-erd --tables=orders,users | d2 --layout=elk - erd.svg
+schema-to-erd --tables=orders,users | d2 --layout=tala - erd.svg
 ```
 
 ## Options
@@ -45,6 +59,7 @@ schema-to-erd --tables=orders,users | d2 --layout=elk - erd.svg
 | `--hide-types`             | Alias for `--types=none`.                      |
 | `--no-nullable-markers`    | Drop the `?` suffix on nullable columns.       |
 | `--exclude-fields=<re>`    | Drop matching columns. Repeatable.             |
+| `--format=d2\|svg`         | Output format. Default from `--output`, or d2. |
 | `--output=<path>`          | Write to a file instead of stdout. Overwrites. |
 | `-h`, `--help`             | Show help.                                     |
 

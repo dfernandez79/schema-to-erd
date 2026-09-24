@@ -90,6 +90,44 @@ describe("parse: type mode", () => {
   });
 });
 
+describe("parse: format", () => {
+  test("defaults to d2", () => {
+    expect(parse([], ENV).format).toBe("d2");
+  });
+
+  test("accepts each format", () => {
+    for (const format of ["d2", "svg"] as const) {
+      expect(parse([`--format=${format}`], ENV).format).toBe(format);
+    }
+  });
+
+  test("is implied by the --output extension, in any case", () => {
+    expect(parse(["--output=erd.svg"], ENV).format).toBe("svg");
+    expect(parse(["--output=ERD.SVG"], ENV).format).toBe("svg");
+    expect(parse(["--output=erd.d2"], ENV).format).toBe("d2");
+  });
+
+  test("falls back to d2 for an extension that implies nothing", () => {
+    expect(parse(["--output=erd.txt"], ENV).format).toBe("d2");
+    expect(parse(["--output=erd"], ENV).format).toBe("d2");
+  });
+
+  test("an explicit format goes with any extension that implies nothing", () => {
+    expect(parse(["--format=svg", "--output=erd.txt"], ENV).format).toBe("svg");
+    expect(parse(["--format=svg", "--output=erd.svg"], ENV).format).toBe("svg");
+  });
+
+  test("rejects a format the extension contradicts", () => {
+    expect(() => parse(["--format=svg", "--output=erd.d2"], ENV)).toThrow(
+      /--format=svg conflicts with --output=erd.d2/,
+    );
+  });
+
+  test("rejects an unknown format", () => {
+    expect(() => parse(["--format=png"], ENV)).toThrow(UsageError);
+  });
+});
+
 describe("parse: other flags", () => {
   test("nullable markers are on unless opted out", () => {
     expect(parse([], ENV).nullableMarkers).toBe(true);

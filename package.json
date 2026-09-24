@@ -17,6 +17,9 @@
     "fmt:check": "oxfmt --check",
     "prepare": "husky"
   },
+  "dependencies": {
+    "@terrastruct/d2": "0.1.33"
+  },
   "devDependencies": {
     "@diegoux/oxc-config": "^0.1.0",
     "@testcontainers/postgresql": "^12.1.0",

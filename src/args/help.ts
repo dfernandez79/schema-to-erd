@@ -1,4 +1,4 @@
-const HELP = `schema-to-erd - generate a D2 ERD from a PostgreSQL schema
+const HELP = `schema-to-erd - generate an ERD from a PostgreSQL schema, as D2 or SVG
 
 Usage:
   schema-to-erd [options]
@@ -24,6 +24,10 @@ Rendering:
                           case-sensitive. Repeatable.
 
 Output:
+  --format=d2|svg         Output format. Default: implied by the --output
+                          extension (.d2, .svg), otherwise d2.
+                            d2   D2 source, for the d2 CLI
+                            svg  SVG, laid out with the ELK engine
   --output=<path>         Write to this file, overwriting it. Default: stdout.
   -h, --help              Show this help.
 
@@ -32,6 +36,7 @@ Examples:
   schema-to-erd --tables=orders,order_items --schema=sales
   schema-to-erd --tables=orders --exclude-fields='orders\\.updatedAt'
   schema-to-erd --types=none --output=erd.d2
+  schema-to-erd --tables=orders,users --output=erd.svg
 `;
 
 export { HELP };

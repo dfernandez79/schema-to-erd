@@ -2,6 +2,8 @@ import type { BunFile } from "bun";
 
 type TypeMode = "none" | "base" | "full";
 
+type Format = "d2" | "svg";
+
 type Options = {
   connectionString: string;
   schema?: string;
@@ -9,6 +11,7 @@ type Options = {
   excludeFields?: RegExp[];
   types?: TypeMode;
   nullableMarkers?: boolean;
+  format?: Format;
   output?: string;
 };
 
@@ -47,4 +50,4 @@ type Schema = {
   edges: Edge[];
 };
 
-export type { Options, Column, Edge, Output, Schema, Table, TypeMode };
+export type { Options, Column, Edge, Format, Output, Schema, Table, TypeMode };

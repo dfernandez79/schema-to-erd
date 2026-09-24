@@ -3,8 +3,17 @@ import { SQL } from "bun";
 import { RunError } from "./errors.ts";
 import { excludeFields } from "./exclude-fields.ts";
 import { introspect } from "./introspect.ts";
-import { renderD2 } from "./render-d2.ts";
-import type { Options, Output } from "./types.ts";
+import { type RenderOptions, renderD2 } from "./render-d2.ts";
+import { renderSvg } from "./render-svg.ts";
+import type { Format, Options, Output, Schema } from "./types.ts";
+
+const RENDERERS: Record<
+  Format,
+  (schema: Schema, options: RenderOptions) => string | Promise<string>
+> = {
+  d2: renderD2,
+  svg: renderSvg,
+};
 
 const cli = async (
   {
@@ -15,6 +24,7 @@ const cli = async (
     excludeFields: excludeFieldsPatterns = [],
     types = "base",
     nullableMarkers = false,
+    format = "d2",
   }: Options,
   stdout: Output,
   stderr: Output,
@@ -22,7 +32,7 @@ const cli = async (
   try {
     await using sql = new SQL(connectionString);
     const dbSchema = await introspect(sql, schema, tables);
-    const result = renderD2(excludeFields(dbSchema, excludeFieldsPatterns), {
+    const result = await RENDERERS[format](excludeFields(dbSchema, excludeFieldsPatterns), {
       types,
       nullableMarkers,
     });
