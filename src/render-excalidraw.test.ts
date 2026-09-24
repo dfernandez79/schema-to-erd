@@ -1,18 +1,18 @@
 import { beforeAll, describe, expect, test } from "bun:test";
 
 import type { RenderOptions } from "./render-d2.ts";
-import { renderExcalidraw } from "./render-excalidraw.ts";
+import { elbowRoute, renderExcalidraw } from "./render-excalidraw.ts";
 import { column } from "./test-helpers/column.ts";
 import { schemaOf } from "./test-helpers/schema-of.ts";
 import { table } from "./test-helpers/table.ts";
-import type { Schema } from "./types.ts";
+import type { Layout, Schema } from "./types.ts";
 
 /** Loading D2's WASM takes a second or two, past bun's default timeout. */
 const WASM_TIMEOUT = 30_000;
 
 const BASE: RenderOptions = { types: "base", nullableMarkers: true };
 
-type Binding = { elementId: string; gap: number; fixedPoint: [number, number] };
+type Binding = { elementId: string; focus: number; gap: number; fixedPoint?: [number, number] };
 
 type SceneElement = {
   id: string;
@@ -31,6 +31,7 @@ type SceneElement = {
   startBinding?: Binding;
   endBinding?: Binding;
   elbowed?: boolean;
+  roundness?: { type: number } | null;
   endArrowhead?: string;
 };
 
@@ -107,12 +108,14 @@ const ends = (arrow: SceneElement): [[number, number], [number, number]] => {
   ];
 };
 
-describe("renderExcalidraw", () => {
+const LAYOUTS: Layout[] = ["elk", "dagre"];
+
+describe.each(LAYOUTS)("renderExcalidraw, laid out with %s", layout => {
   let json = "";
   let scene: Scene;
 
   beforeAll(async () => {
-    json = await renderExcalidraw(SCHEMA, BASE);
+    json = await renderExcalidraw(SCHEMA, { ...BASE, layout });
     scene = JSON.parse(json) as Scene;
   }, WASM_TIMEOUT);
 
@@ -169,16 +172,49 @@ describe("renderExcalidraw", () => {
     for (const edge of rest) expect(edge).toBeCloseTo(first!);
   });
 
-  test("binds an arrow from the foreign key's row to the referenced row", () => {
+  test("binds both ends of every arrow to elements that list it back", () => {
+    const byId = new Map(scene.elements.map(e => [e.id, e]));
+    const arrows = arrowsOf(scene);
+    expect(arrows).toHaveLength(2);
+    for (const arrow of arrows) {
+      for (const binding of [arrow.startBinding, arrow.endBinding]) {
+        // Excalidraw moves an arrow with a table only if the table lists it too.
+        expect(byId.get(binding!.elementId)?.boundElements).toContainEqual({
+          id: arrow.id,
+          type: "arrow",
+        });
+      }
+    }
+  });
+
+  test("gives every element its own id", () => {
+    const ids = scene.elements.map(e => e.id);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  test(
+    "renders the same schema to the same file",
+    async () => {
+      expect(await renderExcalidraw(SCHEMA, { ...BASE, layout })).toBe(json);
+    },
+    WASM_TIMEOUT,
+  );
+});
+
+describe("renderExcalidraw, laid out with elk", () => {
+  let scene: Scene;
+
+  beforeAll(async () => {
+    scene = await render(SCHEMA, { ...BASE, layout: "elk" });
+  }, WASM_TIMEOUT);
+
+  test("binds an elbow arrow from the foreign key's row to the referenced row", () => {
     const from = rowOf(scene, "orders", "user_id?");
     const to = rowOf(scene, "users", "id");
     const arrow = arrowFrom(scene, from);
     expect(arrow.endBinding?.elementId).toBe(to.id);
     expect(arrow.elbowed).toBe(true);
     expect(arrow.endArrowhead).toBe("arrow");
-    // Excalidraw moves an arrow with a table only if the table lists it too.
-    expect(from.boundElements).toEqual([{ id: arrow.id, type: "arrow" }]);
-    expect(to.boundElements).toContainEqual({ id: arrow.id, type: "arrow" });
   });
 
   test("ends arrows just off the rows' sides, where Excalidraw would", () => {
@@ -189,8 +225,9 @@ describe("renderExcalidraw", () => {
     expect(y).toBe(from.y + from.height / 2);
     const binding = arrow.startBinding!;
     expect(binding.gap).toBe(5);
-    expect(binding.fixedPoint[0]).toBeCloseTo((x - from.x) / from.width);
-    expect(binding.fixedPoint[1]).toBe(0.5001);
+    const [ratioX, ratioY] = binding.fixedPoint ?? [];
+    expect(ratioX).toBeCloseTo((x - from.x) / from.width);
+    expect(ratioY).toBe(0.5001);
   });
 
   test("routes every arrow in right angles", () => {
@@ -216,16 +253,62 @@ describe("renderExcalidraw", () => {
     expect(endY).toBe(to.y + to.height / 2);
     expect(Math.min(...arrow.points!.map(([x]) => arrow.x + x))).toBeGreaterThan(right);
   });
+});
 
-  test("gives every element its own id", () => {
-    const ids = scene.elements.map(e => e.id);
-    expect(new Set(ids).size).toBe(ids.length);
+const near = (value: number, edge: number): boolean => Math.abs(value - edge) < 1;
+
+/** Whether `point` lies on the edge of `box`, give or take a pixel. */
+const onEdge = ([x, y]: [number, number], box: SceneElement): boolean => {
+  const [left, right, top, bottom] = [box.x, box.x + box.width, box.y, box.y + box.height];
+  const inside = x > left - 1 && x < right + 1 && y > top - 1 && y < bottom + 1;
+  return inside && (near(x, left) || near(x, right) || near(y, top) || near(y, bottom));
+};
+
+describe("renderExcalidraw, laid out with dagre", () => {
+  let scene: Scene;
+
+  beforeAll(async () => {
+    scene = await render(SCHEMA, { ...BASE, layout: "dagre" });
+  }, WASM_TIMEOUT);
+
+  test("draws dagre's curves, which join tables rather than rows, as the SVG does", () => {
+    const orders = outlineOf(scene, "orders");
+    const users = outlineOf(scene, "users");
+    const arrow = arrowFrom(scene, orders);
+    expect(arrow.endBinding?.elementId).toBe(users.id);
+    expect(arrow.elbowed).toBe(false);
+    expect(arrow.roundness).toEqual({ type: 2 });
+    const [start, end] = ends(arrow);
+    expect(onEdge(start, orders)).toBe(true);
+    expect(onEdge(end, users)).toBe(true);
+    // D2 aims the curve at each table's centre, which Excalidraw calls focus 0.
+    expect(arrow.startBinding?.focus).toBe(0);
+    expect(arrow.endBinding?.focus).toBe(0);
+    // With a gap of 0, Excalidraw would move the ends to the centres once a
+    // table is dragged.
+    expect(arrow.startBinding?.gap).toBeGreaterThan(0);
+    expect(arrow.endBinding?.gap).toBeGreaterThan(0);
   });
 
+  test("draws a table's arrow to itself as a curve too", () => {
+    const users = outlineOf(scene, "users");
+    const arrow = arrowFrom(scene, users);
+    expect(arrow.endBinding?.elementId).toBe(users.id);
+    expect(arrow.roundness).toEqual({ type: 2 });
+  });
+});
+
+describe("renderExcalidraw", () => {
   test(
-    "renders the same schema to the same file",
+    "lays out with ELK unless told otherwise, and with dagre when told",
     async () => {
-      expect(await renderExcalidraw(SCHEMA, BASE)).toBe(json);
+      const [unset, elk, dagre] = await Promise.all([
+        renderExcalidraw(SCHEMA, BASE),
+        renderExcalidraw(SCHEMA, { ...BASE, layout: "elk" }),
+        renderExcalidraw(SCHEMA, { ...BASE, layout: "dagre" }),
+      ]);
+      expect(unset).toBe(elk);
+      expect(dagre).not.toBe(elk);
     },
     WASM_TIMEOUT,
   );
@@ -285,4 +368,55 @@ describe("renderExcalidraw", () => {
     },
     WASM_TIMEOUT,
   );
+});
+
+const box = (x: number, y: number, width = 100) => ({ x, y, width, height: 40 });
+
+describe("elbowRoute", () => {
+  test("crosses the gap between rows far enough apart sideways", () => {
+    expect(elbowRoute(box(0, 0), box(300, 200))).toEqual([
+      { x: 105, y: 20 },
+      { x: 200, y: 20 },
+      { x: 200, y: 220 },
+      { x: 295, y: 220 },
+    ]);
+    expect(elbowRoute(box(300, 200), box(0, 0))).toEqual([
+      { x: 295, y: 220 },
+      { x: 200, y: 220 },
+      { x: 200, y: 20 },
+      { x: 105, y: 20 },
+    ]);
+  });
+
+  test("runs straight across between rows at one height", () => {
+    expect(elbowRoute(box(0, 0), box(300, 0))).toEqual([
+      { x: 105, y: 20 },
+      { x: 295, y: 20 },
+    ]);
+  });
+
+  test("detours around the nearer side of tables that overlap sideways", () => {
+    expect(elbowRoute(box(0, 0, 200), box(150, 200))).toEqual([
+      { x: 205, y: 20 },
+      { x: 290, y: 20 },
+      { x: 290, y: 220 },
+      { x: 255, y: 220 },
+    ]);
+    expect(elbowRoute(box(100, 0, 200), box(50, 200))).toEqual([
+      { x: 95, y: 20 },
+      { x: 10, y: 20 },
+      { x: 10, y: 220 },
+      { x: 45, y: 220 },
+    ]);
+  });
+
+  test("turns an arrow from a row to itself back on two heights", () => {
+    const row = box(0, 0);
+    expect(elbowRoute(row, row)).toEqual([
+      { x: 105, y: 12 },
+      { x: 140, y: 12 },
+      { x: 140, y: 28 },
+      { x: 105, y: 28 },
+    ]);
+  });
 });

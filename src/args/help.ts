@@ -28,8 +28,11 @@ Output:
                           Output format. Default: implied by the --output
                           extension (.d2, .svg, .excalidraw), otherwise d2.
                             d2          D2 source, for the d2 CLI
-                            svg         SVG, laid out with the ELK engine
+                            svg         SVG, rendered by the bundled D2
                             excalidraw  Excalidraw scene, laid out the same way
+  --layout=elk|dagre      Layout engine for svg and excalidraw. Default: elk.
+                          With d2, written into the file's d2-config, which
+                          the d2 CLI follows unless given --layout itself.
   --output=<path>         Write to this file, overwriting it. Default: stdout.
   -h, --help              Show this help.
 
@@ -40,6 +43,7 @@ Examples:
   schema-to-erd --types=none --output=erd.d2
   schema-to-erd --tables=orders,users --output=erd.svg
   schema-to-erd --format=excalidraw > erd.excalidraw
+  schema-to-erd --layout=dagre --output=erd.svg
 `;
 
 export { HELP };

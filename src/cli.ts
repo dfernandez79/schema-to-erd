@@ -27,6 +27,7 @@ const cli = async (
     types = "base",
     nullableMarkers = false,
     format = "d2",
+    layout,
   }: Options,
   stdout: Output,
   stderr: Output,
@@ -37,6 +38,7 @@ const cli = async (
     const result = await RENDERERS[format](excludeFields(dbSchema, excludeFieldsPatterns), {
       types,
       nullableMarkers,
+      layout,
     });
 
     const output = outputFile ? Bun.file(outputFile) : stdout;

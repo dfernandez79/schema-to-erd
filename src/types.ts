@@ -4,6 +4,9 @@ type TypeMode = "none" | "base" | "full";
 
 type Format = "d2" | "svg" | "excalidraw";
 
+/** The layout engines D2's WASM build has. TALA ships only as a d2 CLI plugin. */
+type Layout = "elk" | "dagre";
+
 type Options = {
   connectionString: string;
   schema?: string;
@@ -12,6 +15,8 @@ type Options = {
   types?: TypeMode;
   nullableMarkers?: boolean;
   format?: Format;
+  /** Unset means ELK for SVG and Excalidraw, and no layout in D2 output. */
+  layout?: Layout;
   output?: string;
 };
 
@@ -50,4 +55,4 @@ type Schema = {
   edges: Edge[];
 };
 
-export type { Options, Column, Edge, Format, Output, Schema, Table, TypeMode };
+export type { Options, Column, Edge, Format, Layout, Output, Schema, Table, TypeMode };

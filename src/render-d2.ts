@@ -1,8 +1,9 @@
-import type { Column, Schema, TypeMode } from "./types.ts";
+import type { Column, Layout, Schema, TypeMode } from "./types.ts";
 
 type RenderOptions = {
   types: TypeMode;
   nullableMarkers: boolean;
+  layout?: Layout;
 };
 
 type Constraint = "primary_key" | "foreign_key" | "unique";
@@ -29,6 +30,14 @@ const constraintsOf = (column: Column): Constraint[] => {
   if (column.isUnique && !column.isPrimaryKey) constraints.push("unique");
   return constraints;
 };
+
+/**
+ * Records the layout engine for the d2 CLI, which uses it unless given
+ * --layout. D2 rejects the block in a file imported as a nested object, so it
+ * is written only on request.
+ */
+const renderLayoutConfig = (layout: Layout): string =>
+  ["vars: {", "  d2-config: {", `    layout-engine: ${layout}`, "  }", "}"].join("\n");
 
 /** The marker rides on the name, so it survives --types=none. */
 const columnLabel = (column: Column, options: RenderOptions): string =>
@@ -79,7 +88,7 @@ const renderD2 = (schema: Schema, options: D2Options): string => {
     edge => `${endpoint(edge.table, edge.column)} -> ${endpoint(edge.refTable, edge.refColumn)}`,
   );
 
-  const sections = [...blocks];
+  const sections = options.layout ? [renderLayoutConfig(options.layout), ...blocks] : [...blocks];
   if (edges.length > 0) sections.push(edges.join("\n"));
   return sections.join("\n\n") + "\n";
 };

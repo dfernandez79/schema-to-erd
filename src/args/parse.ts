@@ -2,11 +2,13 @@ import { extname } from "node:path";
 import { parseArgs } from "node:util";
 
 import { HelpRequested, UsageError } from "../errors.ts";
-import type { Format, Options, TypeMode } from "../types.ts";
+import type { Format, Layout, Options, TypeMode } from "../types.ts";
 
 const TYPE_MODES: readonly string[] = ["none", "base", "full"] satisfies TypeMode[];
 
 const FORMATS: readonly string[] = ["d2", "svg", "excalidraw"] satisfies Format[];
+
+const LAYOUTS: readonly string[] = ["elk", "dagre"] satisfies Layout[];
 
 /** The format an `--output` extension implies when `--format` is not given. */
 const FORMAT_BY_EXTENSION: Record<string, Format> = {
@@ -29,6 +31,7 @@ const parse = (argv: string[], env: Record<string, string | undefined>): Options
         "hide-types": { type: "boolean" },
         "no-nullable-markers": { type: "boolean" },
         format: { type: "string" },
+        layout: { type: "string" },
         output: { type: "string" },
         help: { type: "boolean", short: "h" },
       },
@@ -49,6 +52,7 @@ const parse = (argv: string[], env: Record<string, string | undefined>): Options
     types: resolveTypeMode(values.types, values["hide-types"] ?? false),
     nullableMarkers: !values["no-nullable-markers"],
     format: resolveFormat(values.format, values.output),
+    layout: resolveLayout(values.layout),
     output: values.output,
   };
 };
@@ -133,6 +137,14 @@ const resolveFormat = (format: string | undefined, output: string | undefined): 
     );
   }
   return format as Format;
+};
+
+const resolveLayout = (layout: string | undefined): Layout | undefined => {
+  if (layout === undefined) return undefined;
+  if (!LAYOUTS.includes(layout)) {
+    throw new UsageError(`--layout must be one of ${LAYOUTS.join(", ")}, got '${layout}'`);
+  }
+  return layout as Layout;
 };
 
 export { parse };

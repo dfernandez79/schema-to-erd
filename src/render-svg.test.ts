@@ -22,6 +22,10 @@ const SCHEMA = schemaOf(
 const texts = (svg: string): string[] =>
   [...svg.matchAll(/<text[^>]*>([^<]*)<\/text>/g)].map(match => match[1]!);
 
+/** The path of each foreign key arrow. */
+const arrows = (svg: string): string[] =>
+  [...svg.matchAll(/<path d="([^"]*)"[^>]*class="connection stroke-/g)].map(match => match[1]!);
+
 describe("renderSvg", () => {
   let svg = "";
 
@@ -54,8 +58,23 @@ describe("renderSvg", () => {
   });
 
   test("draws one arrow per foreign key", () => {
-    expect(svg.match(/class="connection stroke-/g)).toHaveLength(1);
+    expect(arrows(svg)).toHaveLength(1);
   });
+
+  test(
+    "lays out with ELK unless told otherwise, and with dagre when told",
+    async () => {
+      const [elk, dagre] = await Promise.all([
+        renderSvg(SCHEMA, { types: "base", nullableMarkers: true, layout: "elk" }),
+        renderSvg(SCHEMA, { types: "base", nullableMarkers: true, layout: "dagre" }),
+      ]);
+      expect(arrows(svg)).toEqual(arrows(elk));
+      // ELK draws right angles with rounded corners; dagre, Bézier curves.
+      expect(arrows(elk)[0]).not.toContain(" C ");
+      expect(arrows(dagre)[0]).toContain(" C ");
+    },
+    WASM_TIMEOUT,
+  );
 
   test(
     "renders the same schema to the same bytes",

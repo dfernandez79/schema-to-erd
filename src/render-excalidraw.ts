@@ -23,10 +23,12 @@ const FONT_SIZE = 20;
 const HEADER_FONT_SIZE = 24;
 const PADDING = 12;
 const COLUMN_GAP = 24;
-/** How far past the table a self-referencing arrow loops. */
-const LOOP_REACH = 40;
+/** How far past the tables an arrow detours around their side. */
+const DETOUR_REACH = 40;
 /** How far from what it binds to Excalidraw ends an elbow arrow. */
 const BINDING_GAP = 5;
+/** Slack for D2's floating-point coordinates. */
+const EPSILON = 0.5;
 
 // Excalidraw's default palette, so the diagram looks drawn in it.
 const INK = "#1e1e1e";
@@ -53,7 +55,8 @@ type Binding = {
   elementId: string;
   focus: number;
   gap: number;
-  fixedPoint: [number, number];
+  /** Where on the target an elbow arrow ends, as fractions of its size. */
+  fixedPoint?: [number, number];
 };
 
 type Row = { column: string; name: string; type?: string; constraints: string };
@@ -153,7 +156,7 @@ const element = (
 const drawTable = (
   { table, rows, typeOffset }: MeasuredTable,
   box: Box,
-): { elements: Element[]; rowsByColumn: Map<string, Element> } => {
+): { elements: Element[]; outline: Element; rowsByColumn: Map<string, Element> } => {
   const groupIds = [identify(["table", table.name]).id];
   const rowHeight = box.height / (rows.length + 1);
   const left = box.x + PADDING;
@@ -187,8 +190,9 @@ const drawTable = (
     };
   };
 
+  const outline = element(at("outline"), "rectangle", box, groupIds);
   const elements = [
-    element(at("outline"), "rectangle", box, groupIds),
+    outline,
     element(at("header"), "rectangle", { ...box, height: rowHeight }, groupIds, INK, HEADER_FILL),
     label(at("title"), table.name, 0, { left }, { fontSize: HEADER_FONT_SIZE }),
   ];
@@ -216,7 +220,7 @@ const drawTable = (
     }
   });
 
-  return { elements, rowsByColumn };
+  return { elements, outline, rowsByColumn };
 };
 
 /** Excalidraw nudges a ratio off 0.5, where the side it lies on is ambiguous. */
@@ -244,29 +248,128 @@ const offRow = (point: Point, row: Element): Point => {
     : { x: row.x - BINDING_GAP, y: point.y };
 };
 
+/** Whether `point` lies on the left or right side of `row`, within its height. */
+const onSide = (point: Point, row: Box): boolean =>
+  row.y < point.y &&
+  point.y < row.y + row.height &&
+  (Math.abs(point.x - row.x) < EPSILON || Math.abs(point.x - (row.x + row.width)) < EPSILON);
+
+const rightAngled = (route: Point[]): boolean => {
+  let previous: Point | undefined;
+  for (const point of route) {
+    if (
+      previous &&
+      Math.abs(point.x - previous.x) >= EPSILON &&
+      Math.abs(point.y - previous.y) >= EPSILON
+    ) {
+      return false;
+    }
+    previous = point;
+  }
+  return true;
+};
+
 /**
- * D2 routes a table's arrow to itself from the table's bottom to its top.
- * Looping out of the right side instead keeps it on the rows it joins.
+ * Whether D2's route runs in right angles from the side of one row to the side
+ * of the other, as ELK's do, except the arrow from a table to itself, which ELK
+ * sends out of the table's bottom.
  */
-const loop = (from: Element, to: Element): Point[] => {
-  const x = from.x + from.width;
+const joinsRows = (route: Point[], from: Box, to: Box): boolean => {
+  const [first, second] = route;
+  const [beforeLast, last] = route.slice(-2);
+  return (
+    first !== undefined &&
+    second !== undefined &&
+    beforeLast !== undefined &&
+    last !== undefined &&
+    rightAngled(route) &&
+    // Each end leaves its row sideways.
+    onSide(first, from) &&
+    Math.abs(first.y - second.y) < EPSILON &&
+    onSide(last, to) &&
+    Math.abs(last.y - beforeLast.y) < EPSILON
+  );
+};
+
+/**
+ * A right-angled route from the side of one row to the side of another, for
+ * when D2's route doesn't join them. Rows far enough apart sideways are joined
+ * across the gap between them; others by a detour around the nearer side.
+ */
+const elbowRoute = (from: Box, to: Box): Point[] => {
+  // An arrow from a row to itself needs two heights to turn back on.
   const [fromY, toY] =
     from === to
       ? [from.y + from.height * 0.3, from.y + from.height * 0.7]
       : [from.y + from.height / 2, to.y + to.height / 2];
-  return [
-    { x: x + BINDING_GAP, y: fromY },
-    { x: x + LOOP_REACH, y: fromY },
-    { x: x + LOOP_REACH, y: toY },
-    { x: x + BINDING_GAP, y: toY },
-  ];
+  const path = (startX: number, turnX: number, endX: number): Point[] =>
+    fromY === toY
+      ? [
+          { x: startX, y: fromY },
+          { x: endX, y: toY },
+        ]
+      : [
+          { x: startX, y: fromY },
+          { x: turnX, y: fromY },
+          { x: turnX, y: toY },
+          { x: endX, y: toY },
+        ];
+
+  const fromRight = from.x + from.width;
+  const toRight = to.x + to.width;
+  if (to.x - fromRight >= 2 * DETOUR_REACH) {
+    return path(fromRight + BINDING_GAP, (fromRight + to.x) / 2, to.x - BINDING_GAP);
+  }
+  if (from.x - toRight >= 2 * DETOUR_REACH) {
+    return path(from.x - BINDING_GAP, (toRight + from.x) / 2, toRight + BINDING_GAP);
+  }
+  const right = Math.max(fromRight, toRight) + DETOUR_REACH;
+  const left = Math.min(from.x, to.x) - DETOUR_REACH;
+  return 2 * right - fromRight - toRight <= from.x + to.x - 2 * left
+    ? path(fromRight + BINDING_GAP, right, toRight + BINDING_GAP)
+    : path(from.x - BINDING_GAP, left, to.x - BINDING_GAP);
 };
 
 /**
- * An elbow arrow along `route`, bound at both ends. The rows it binds list it
- * back, or Excalidraw would leave it behind when a table moves.
+ * Binds a curve's end so it keeps aiming at `target`'s centre, as D2 aims it:
+ * a focus of 0 means the centre to Excalidraw. A gap of 0 would end the arrow
+ * at the centre itself; 1 is the least Excalidraw gives one ending at the edge.
  */
-const arrow = (path: string[], route: Point[], from: Element, to: Element): Element => {
+const aimAt = (target: Element): Binding => ({ elementId: target.id, focus: 0, gap: 1 });
+
+const cubic = (p0: Point, c1: Point, c2: Point, p3: Point, t: number): Point => {
+  const u = 1 - t;
+  const at = (a: number, b: number, c: number, d: number): number =>
+    u * u * u * a + 3 * u * u * t * b + 3 * u * t * t * c + t * t * t * d;
+  return { x: at(p0.x, c1.x, c2.x, p3.x), y: at(p0.y, c1.y, c2.y, p3.y) };
+};
+
+/**
+ * Points along a route D2 drew as Bézier curves, whose points are mostly
+ * control points. Excalidraw draws a curved arrow through its points instead.
+ */
+const sampleCurve = (route: Point[]): Point[] => {
+  const points = route.slice(0, 1);
+  for (let i = 0; i + 3 < route.length; i += 3) {
+    const [p0, c1, c2, p3] = route.slice(i, i + 4);
+    if (p0 && c1 && c2 && p3) {
+      for (const t of [0.25, 0.5, 0.75, 1]) points.push(cubic(p0, c1, c2, p3, t));
+    }
+  }
+  return points;
+};
+
+/**
+ * An arrow along `route`, bound at both ends. What it binds lists it back, or
+ * Excalidraw would leave it behind when a table moves.
+ */
+const arrow = (
+  path: string[],
+  route: Point[],
+  [from, to]: [Element, Element],
+  bind: (target: Element, point: Point) => Binding,
+  shape: Record<string, unknown>,
+): Element => {
   const first = route[0];
   const last = route.at(-1);
   if (first === undefined || last === undefined) throw new Error("an arrow needs a route");
@@ -282,21 +385,23 @@ const arrow = (path: string[], route: Point[], from: Element, to: Element): Elem
     ...element(path, "arrow", box, []),
     points: route.map(point => [point.x - first.x, point.y - first.y]),
     lastCommittedPoint: null,
-    startBinding: bindAt(from, first),
-    endBinding: bindAt(to, last),
+    startBinding: bind(from, first),
+    endBinding: bind(to, last),
     startArrowhead: null,
     endArrowhead: "arrow",
-    // Excalidraw re-routes an elbow arrow by itself when a table moves.
-    elbowed: true,
-    fixedSegments: null,
-    startIsSpecial: null,
-    endIsSpecial: null,
+    ...shape,
   };
   for (const target of new Set([from, to])) {
     target.boundElements = [...(target.boundElements ?? []), { id: drawn.id, type: "arrow" }];
   }
   return drawn;
 };
+
+/** Excalidraw re-routes an elbow arrow by itself when a table moves. */
+const ELBOWED = { elbowed: true, fixedSegments: null, startIsSpecial: null, endIsSpecial: null };
+
+/** Excalidraw's round arrow, which curves through its points. */
+const CURVED = { roundness: { type: 2 }, elbowed: false };
 
 /** D2 keys shapes by escaped id, but labels them with the table name. */
 const labelOf = (shape: Shape): string => ("label" in shape ? shape.label : shape.id);
@@ -310,8 +415,8 @@ const boxesByTable = (diagram: Diagram): Map<string, Box> =>
   );
 
 /**
- * An Excalidraw scene, laid out by D2 with ELK like the SVG is, from tables
- * sized for Excalidraw's hand-drawn font.
+ * An Excalidraw scene, laid out by D2 like the SVG is, from tables sized for
+ * Excalidraw's hand-drawn font.
  */
 const renderExcalidraw = async (schema: Schema, options: RenderOptions): Promise<string> => {
   const measured = schema.tables.map(table => measure(table, options));
@@ -319,16 +424,18 @@ const renderExcalidraw = async (schema: Schema, options: RenderOptions): Promise
     ...options,
     tableSizes: new Map(measured.map(m => [m.table.name, m])),
   });
-  const { diagram } = await withD2(d2 => layOut(d2, source));
+  const { diagram } = await withD2(d2 => layOut(d2, source, options.layout));
 
   const boxes = boxesByTable(diagram);
   const elements: Element[] = [];
+  const outlines = new Map<string, Element>();
   const rowsByTable = new Map<string, Map<string, Element>>();
   for (const m of measured) {
     const box = boxes.get(m.table.name);
     if (box === undefined) throw new Error(`D2 laid out no table '${m.table.name}'`);
     const drawn = drawTable(m, box);
     elements.push(...drawn.elements);
+    outlines.set(m.table.name, drawn.outline);
     rowsByTable.set(m.table.name, drawn.rowsByColumn);
   }
 
@@ -338,31 +445,41 @@ const renderExcalidraw = async (schema: Schema, options: RenderOptions): Promise
   schema.edges.forEach((edge, index) => {
     const path = [edge.table, edge.column, edge.refTable, edge.refColumn];
     const connection = diagram.connections[index];
+    const fromTable = outlines.get(edge.table);
+    const toTable = outlines.get(edge.refTable);
     const from = rowsByTable.get(edge.table)?.get(edge.column);
     const to = rowsByTable.get(edge.refTable)?.get(edge.refColumn);
     if (
       connection === undefined ||
       labels.get(connection.src) !== edge.table ||
       labels.get(connection.dst) !== edge.refTable ||
+      fromTable === undefined ||
+      toTable === undefined ||
       from === undefined ||
       to === undefined
     ) {
       throw new Error(`D2 laid out no arrow for ${path.join(", ")}`);
     }
 
-    const route: Point[] = connection.route;
-    const drawnRoute =
-      edge.table === edge.refTable
-        ? loop(from, to)
-        : route.map((point, i) =>
-            i === 0 ? offRow(point, from) : i === route.length - 1 ? offRow(point, to) : point,
-          );
-
     // A duplicated foreign key draws a second arrow, which needs its own id.
     const key = JSON.stringify(path);
     const occurrence = seen.get(key) ?? 0;
     seen.set(key, occurrence + 1);
-    elements.push(arrow(["edge", ...path, String(occurrence)], drawnRoute, from, to));
+    const id = ["edge", ...path, String(occurrence)];
+
+    const route: Point[] = connection.route;
+    if (connection.isCurve) {
+      // Dagre curves between the tables, around the others, but not to the
+      // rows. The arrow follows its curve, as the SVG does.
+      elements.push(arrow(id, sampleCurve(route), [fromTable, toTable], aimAt, CURVED));
+      return;
+    }
+    const drawnRoute = joinsRows(route, from, to)
+      ? route.map((point, i) =>
+          i === 0 ? offRow(point, from) : i === route.length - 1 ? offRow(point, to) : point,
+        )
+      : elbowRoute(from, to);
+    elements.push(arrow(id, drawnRoute, [from, to], bindAt, ELBOWED));
   });
 
   const scene = {
@@ -376,4 +493,4 @@ const renderExcalidraw = async (schema: Schema, options: RenderOptions): Promise
   return JSON.stringify(scene, undefined, 2) + "\n";
 };
 
-export { renderExcalidraw };
+export { elbowRoute, renderExcalidraw };

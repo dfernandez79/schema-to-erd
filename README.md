@@ -22,6 +22,7 @@ schema-to-erd --tables=orders --exclude-fields='orders\.updatedAt'
 schema-to-erd --types=none --output=erd.d2
 schema-to-erd --tables=orders,users --output=erd.svg
 schema-to-erd --output=erd.excalidraw
+schema-to-erd --layout=dagre --output=erd.svg
 schema-to-erd --help
 ```
 
@@ -41,20 +42,41 @@ The connection is specified by `--database` and falls back to `$DATABASE_URL`.
 `--format` that contradicts the extension is a usage error:
 `--format=svg --output=erd.d2` fails instead of writing SVG into a `.d2` file.
 
-SVG output is laid out with the ELK engine, as `d2 --layout=elk` would. To use
-another engine, such as TALA, render the D2 source with the `d2` CLI. Avoid D2's
-default engine, which points foreign key arrows to the table box rather than the
-specific row:
+Excalidraw output uses the same layout as SVG, with tables sized for
+Excalidraw's hand-drawn font. Each table is a group. Element ids come from table
+and column names, so the same schema always produces the same file and a schema
+change produces a small diff.
+
+## Layout
+
+`--layout` picks the engine that places the tables and routes the arrows: `elk`,
+the default, or `dagre`. Those are the engines D2's bundled WebAssembly build
+has; TALA ships only as a plugin for the `d2` CLI.
+
+With `elk`, foreign key arrows run in right angles from the column's row to the
+referenced row, and in Excalidraw they are elbow arrows that re-route when a
+table moves. With `dagre`, they are curves that join tables rather than rows, in
+SVG and Excalidraw alike.
+
+D2 output names no engine unless you pass `--layout`. With it, the file starts
+with a `d2-config` block, and the `d2` CLI lays the file out with that engine
+unless it gets `--layout` itself:
+
+```d2
+vars: {
+  d2-config: {
+    layout-engine: elk
+  }
+}
+```
+
+D2 rejects the block in a file imported as a nested object (`erd: @erd`), but a
+spread import (`...@erd`) works. To use TALA, render D2 output with the `d2`
+CLI:
 
 ```bash
 schema-to-erd --tables=orders,users | d2 --layout=tala - erd.svg
 ```
-
-Excalidraw output uses the same ELK layout, with tables sized for Excalidraw's
-hand-drawn font. Each table is a group, and each arrow is bound to the rows it
-joins, so moving a table in Excalidraw re-routes its arrows. Element ids come
-from table and column names, so the same schema always produces the same file
-and a schema change produces a small diff.
 
 ## Options
 
@@ -68,6 +90,7 @@ and a schema change produces a small diff.
 | `--no-nullable-markers`        | Drop the `?` suffix on nullable columns.       |
 | `--exclude-fields=<re>`        | Drop matching columns. Repeatable.             |
 | `--format=d2\|svg\|excalidraw` | Output format. Default from `--output`, or d2. |
+| `--layout=elk\|dagre`          | Layout engine. Default `elk`.                  |
 | `--output=<path>`              | Write to a file instead of stdout. Overwrites. |
 | `-h`, `--help`                 | Show help.                                     |
 

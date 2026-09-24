@@ -130,6 +130,24 @@ describe("parse: format", () => {
   });
 });
 
+describe("parse: layout", () => {
+  test("is unset unless given, so D2 output names no engine", () => {
+    expect(parse([], ENV).layout).toBeUndefined();
+  });
+
+  test("accepts each engine D2's WASM build has", () => {
+    for (const layout of ["elk", "dagre"] as const) {
+      expect(parse([`--layout=${layout}`], ENV).layout).toBe(layout);
+    }
+  });
+
+  test("rejects any other engine, TALA included", () => {
+    expect(() => parse(["--layout=tala"], ENV)).toThrow(
+      /--layout must be one of elk, dagre, got 'tala'/,
+    );
+  });
+});
+
 describe("parse: other flags", () => {
   test("nullable markers are on unless opted out", () => {
     expect(parse([], ENV).nullableMarkers).toBe(true);

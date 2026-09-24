@@ -122,6 +122,14 @@ describe("renderD2", () => {
     expect(output).toContain(`"u": {\n  shape: sql_table\n  "id"`);
   });
 
+  test("names the layout engine in d2-config only when given one", () => {
+    const schema = schemaOf([table("t", [column("id")])]);
+    expect(renderD2(schema, BASE)).toStartWith(`"t": {`);
+    expect(renderD2(schema, { ...BASE, layout: "dagre" })).toStartWith(
+      `vars: {\n  d2-config: {\n    layout-engine: dagre\n  }\n}\n\n"t": {`,
+    );
+  });
+
   test("quotes identifiers that collide with D2 keywords", () => {
     const output = renderD2(
       schemaOf([table("shape", [column("style"), column("width"), column("label")])]),
