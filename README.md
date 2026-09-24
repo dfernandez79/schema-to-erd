@@ -83,3 +83,7 @@ case-sensitively against the `schema.table.field` path:
 bun test           # unit + integration; needs Docker
 bun run test:unit  # unit only, no Docker
 ```
+
+## License
+
+[MIT](LICENSE)

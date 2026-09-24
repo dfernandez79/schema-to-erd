@@ -1,5 +1,6 @@
 {
   "name": "@diegoux/schema-to-erd",
+  "license": "MIT",
   "bin": {
     "schema-to-erd": "./src/schema-to-erd.ts"
   },
