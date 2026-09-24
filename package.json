@@ -17,12 +17,13 @@
     "prepare": "husky"
   },
   "devDependencies": {
+    "@diegoux/oxc-config": "^0.1.0",
     "@testcontainers/postgresql": "^12.1.0",
     "@types/bun": "latest",
     "husky": "^9.1.7",
     "lint-staged": "^17.5.1",
-    "oxfmt": "^0.67.0",
-    "oxlint": "^1.82.0"
+    "oxfmt": "^0.70.0",
+    "oxlint": "^1.85.0"
   },
   "peerDependencies": {
     "typescript": "^7"

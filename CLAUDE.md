@@ -14,7 +14,9 @@ For more information, read the Bun API docs in
 ## Linting and formatting
 
 This project uses [oxlint](https://oxc.rs) for linting and
-[oxfmt](https://oxc.rs) for formatting.
+[oxfmt](https://oxc.rs) for formatting. Rules and format options come from the
+shared `@diegoux/oxc-config` package (`oxlint.config.ts`, `oxfmt.config.ts`);
+only project-specific overrides belong in those files.
 
 ```sh
 bun run lint       # report lint problems
