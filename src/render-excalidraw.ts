@@ -1,5 +1,5 @@
 /* oxlint-disable unicorn/no-null -- Excalidraw's file format writes absent values as null. */
-import type { Diagram, Point, Shape } from "@terrastruct/d2";
+import type { Diagram, Point, Shape } from "@d2lang/d2";
 
 import { layOut, withD2 } from "./d2-wasm.ts";
 import { EXCALIFONT, EXCALIFONT_LINE_HEIGHT, textWidth } from "./excalifont.ts";
