@@ -5,7 +5,7 @@ import { captureOutput } from "./test-helpers/capture-output.ts";
 import { NO_DATABASE, testDatabaseUrl } from "./test-helpers/test-database-url.ts";
 import type { Layout, Options } from "./types.ts";
 
-const LAYOUTS: Layout[] = ["elk", "dagre"];
+const LAYOUTS: Layout[] = ["elk", "dagre", "tala"];
 
 const run = async (options: Omit<Options, "connectionString"> = {}): Promise<string> => {
   const stdout = captureOutput();
@@ -66,7 +66,9 @@ describe.skipIf(NO_DATABASE)("cli", () => {
     );
 
     if (Bun.which("d2") === null) return;
-    for (const layout of LAYOUTS) {
+    // Only recent d2 releases bundle TALA.
+    const engines = new TextDecoder().decode(Bun.spawnSync(["d2", "layout"]).stdout);
+    for (const layout of LAYOUTS.filter(engine => engines.includes(`${engine} (bundled)`))) {
       const path = `${import.meta.dir}/../node_modules/.cache/erd-${layout}`;
       await Bun.write(`${path}.d2`, await run({ tables, layout }));
       // No --layout here: the file's own d2-config has to pick the engine.
@@ -75,7 +77,7 @@ describe.skipIf(NO_DATABASE)("cli", () => {
       const arrow = (await Bun.file(`${path}.svg`).text()).match(
         /<path d="([^"]*)"[^>]*class="connection stroke-/,
       )?.[1];
-      // ELK draws right angles; dagre, Bézier curves.
+      // ELK and TALA draw right angles; dagre, Bézier curves.
       expect(arrow?.includes(" C ")).toBe(layout === "dagre");
     }
   });

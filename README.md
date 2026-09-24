@@ -50,13 +50,21 @@ change produces a small diff.
 ## Layout
 
 `--layout` picks the engine that places the tables and routes the arrows: `elk`,
-the default, or `dagre`. Those are the engines D2's bundled WebAssembly build
-has; TALA ships only as a plugin for the `d2` CLI.
+the default, `dagre` or `tala`. D2's bundled WebAssembly build has all three.
 
-With `elk`, foreign key arrows run in right angles from the column's row to the
-referenced row, and in Excalidraw they are elbow arrows that re-route when a
-table moves. With `dagre`, they are curves that join tables rather than rows, in
-SVG and Excalidraw alike.
+With `elk` and `tala`, foreign key arrows run in right angles from the column's
+row to the referenced row, and in Excalidraw they are elbow arrows that re-route
+when a table moves. With `dagre`, they are curves that join tables rather than
+rows, in SVG and Excalidraw alike.
+
+TALA is slow in WebAssembly: about 4 seconds for 14 tables and a minute and a
+half for 60, where ELK takes about a second either way. Recent `d2` releases
+bundle TALA too and run it about ten times faster, so for a large schema, write
+D2 and render it with the `d2` CLI:
+
+```bash
+schema-to-erd --layout=tala --format=d2 | d2 - erd.svg
+```
 
 D2 output names no engine unless you pass `--layout`. With it, the file starts
 with a `d2-config` block, and the `d2` CLI lays the file out with that engine
@@ -71,12 +79,7 @@ vars: {
 ```
 
 D2 rejects the block in a file imported as a nested object (`erd: @erd`), but a
-spread import (`...@erd`) works. To use TALA, render D2 output with the `d2`
-CLI:
-
-```bash
-schema-to-erd --tables=orders,users | d2 --layout=tala - erd.svg
-```
+spread import (`...@erd`) works.
 
 ## Options
 
@@ -90,7 +93,7 @@ schema-to-erd --tables=orders,users | d2 --layout=tala - erd.svg
 | `--no-nullable-markers`        | Drop the `?` suffix on nullable columns.       |
 | `--exclude-fields=<re>`        | Drop matching columns. Repeatable.             |
 | `--format=d2\|svg\|excalidraw` | Output format. Default from `--output`, or d2. |
-| `--layout=elk\|dagre`          | Layout engine. Default `elk`.                  |
+| `--layout=elk\|dagre\|tala`    | Layout engine. Default `elk`.                  |
 | `--output=<path>`              | Write to a file instead of stdout. Overwrites. |
 | `-h`, `--help`                 | Show help.                                     |
 

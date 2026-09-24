@@ -136,14 +136,14 @@ describe("parse: layout", () => {
   });
 
   test("accepts each engine D2's WASM build has", () => {
-    for (const layout of ["elk", "dagre"] as const) {
+    for (const layout of ["elk", "dagre", "tala"] as const) {
       expect(parse([`--layout=${layout}`], ENV).layout).toBe(layout);
     }
   });
 
-  test("rejects any other engine, TALA included", () => {
-    expect(() => parse(["--layout=tala"], ENV)).toThrow(
-      /--layout must be one of elk, dagre, got 'tala'/,
+  test("rejects any other engine", () => {
+    expect(() => parse(["--layout=fdp"], ENV)).toThrow(
+      /--layout must be one of elk, dagre, tala, got 'fdp'/,
     );
   });
 });

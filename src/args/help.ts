@@ -30,9 +30,11 @@ Output:
                             d2          D2 source, for the d2 CLI
                             svg         SVG, rendered by the bundled D2
                             excalidraw  Excalidraw scene, laid out the same way
-  --layout=elk|dagre      Layout engine for svg and excalidraw. Default: elk.
-                          With d2, written into the file's d2-config, which
-                          the d2 CLI follows unless given --layout itself.
+  --layout=elk|dagre|tala
+                          Layout engine for svg and excalidraw. Default: elk.
+                          tala takes minutes on large schemas. With d2,
+                          written into the file's d2-config, which the d2 CLI
+                          follows unless given --layout itself.
   --output=<path>         Write to this file, overwriting it. Default: stdout.
   -h, --help              Show this help.
 

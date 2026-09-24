@@ -4,6 +4,7 @@ import { renderSvg } from "./render-svg.ts";
 import { column } from "./test-helpers/column.ts";
 import { schemaOf } from "./test-helpers/schema-of.ts";
 import { table } from "./test-helpers/table.ts";
+import type { Layout } from "./types.ts";
 
 /** Loading D2's WASM takes a second or two, past bun's default timeout. */
 const WASM_TIMEOUT = 30_000;
@@ -25,6 +26,9 @@ const texts = (svg: string): string[] =>
 /** The path of each foreign key arrow. */
 const arrows = (svg: string): string[] =>
   [...svg.matchAll(/<path d="([^"]*)"[^>]*class="connection stroke-/g)].map(match => match[1]!);
+
+const renderWith = (layout: Layout): Promise<string> =>
+  renderSvg(SCHEMA, { types: "base", nullableMarkers: true, layout });
 
 describe("renderSvg", () => {
   let svg = "";
@@ -62,15 +66,18 @@ describe("renderSvg", () => {
   });
 
   test(
-    "lays out with ELK unless told otherwise, and with dagre when told",
+    "lays out with ELK unless told otherwise, or with the engine it is told",
     async () => {
-      const [elk, dagre] = await Promise.all([
-        renderSvg(SCHEMA, { types: "base", nullableMarkers: true, layout: "elk" }),
-        renderSvg(SCHEMA, { types: "base", nullableMarkers: true, layout: "dagre" }),
+      const [elk, dagre, tala] = await Promise.all([
+        renderWith("elk"),
+        renderWith("dagre"),
+        renderWith("tala"),
       ]);
       expect(arrows(svg)).toEqual(arrows(elk));
-      // ELK draws right angles with rounded corners; dagre, Bézier curves.
+      // ELK and TALA draw right angles, with rounded corners; dagre, Bézier curves.
       expect(arrows(elk)[0]).not.toContain(" C ");
+      expect(arrows(tala)[0]).not.toContain(" C ");
+      expect(arrows(tala)).not.toEqual(arrows(elk));
       expect(arrows(dagre)[0]).toContain(" C ");
     },
     WASM_TIMEOUT,

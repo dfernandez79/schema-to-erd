@@ -4,8 +4,8 @@ type TypeMode = "none" | "base" | "full";
 
 type Format = "d2" | "svg" | "excalidraw";
 
-/** The layout engines D2's WASM build has. TALA ships only as a d2 CLI plugin. */
-type Layout = "elk" | "dagre";
+/** The layout engines D2's WASM build has. */
+type Layout = "elk" | "dagre" | "tala";
 
 type Options = {
   connectionString: string;

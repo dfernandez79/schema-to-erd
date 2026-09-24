@@ -8,7 +8,7 @@ const TYPE_MODES: readonly string[] = ["none", "base", "full"] satisfies TypeMod
 
 const FORMATS: readonly string[] = ["d2", "svg", "excalidraw"] satisfies Format[];
 
-const LAYOUTS: readonly string[] = ["elk", "dagre"] satisfies Layout[];
+const LAYOUTS: readonly string[] = ["elk", "dagre", "tala"] satisfies Layout[];
 
 /** The format an `--output` extension implies when `--format` is not given. */
 const FORMAT_BY_EXTENSION: Record<string, Format> = {

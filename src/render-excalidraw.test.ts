@@ -108,7 +108,7 @@ const ends = (arrow: SceneElement): [[number, number], [number, number]] => {
   ];
 };
 
-const LAYOUTS: Layout[] = ["elk", "dagre"];
+const LAYOUTS: Layout[] = ["elk", "dagre", "tala"];
 
 describe.each(LAYOUTS)("renderExcalidraw, laid out with %s", layout => {
   let json = "";
@@ -201,11 +201,12 @@ describe.each(LAYOUTS)("renderExcalidraw, laid out with %s", layout => {
   );
 });
 
-describe("renderExcalidraw, laid out with elk", () => {
+// Both engines route in right angles from row to row.
+describe.each(["elk", "tala"] as const)("renderExcalidraw, laid out with %s", layout => {
   let scene: Scene;
 
   beforeAll(async () => {
-    scene = await render(SCHEMA, { ...BASE, layout: "elk" });
+    scene = await render(SCHEMA, { ...BASE, layout });
   }, WASM_TIMEOUT);
 
   test("binds an elbow arrow from the foreign key's row to the referenced row", () => {
@@ -300,15 +301,17 @@ describe("renderExcalidraw, laid out with dagre", () => {
 
 describe("renderExcalidraw", () => {
   test(
-    "lays out with ELK unless told otherwise, and with dagre when told",
+    "lays out with ELK unless told otherwise, or with the engine it is told",
     async () => {
-      const [unset, elk, dagre] = await Promise.all([
-        renderExcalidraw(SCHEMA, BASE),
-        renderExcalidraw(SCHEMA, { ...BASE, layout: "elk" }),
-        renderExcalidraw(SCHEMA, { ...BASE, layout: "dagre" }),
+      const [unset, elk, dagre, tala] = await Promise.all([
+        render(SCHEMA),
+        render(SCHEMA, { ...BASE, layout: "elk" }),
+        render(SCHEMA, { ...BASE, layout: "dagre" }),
+        render(SCHEMA, { ...BASE, layout: "tala" }),
       ]);
-      expect(unset).toBe(elk);
-      expect(dagre).not.toBe(elk);
+      expect(unset).toEqual(elk);
+      expect(dagre).not.toEqual(elk);
+      expect(tala).not.toEqual(elk);
     },
     WASM_TIMEOUT,
   );
