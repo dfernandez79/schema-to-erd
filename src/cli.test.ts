@@ -24,7 +24,7 @@ describe.skipIf(NO_DATABASE)("cli", () => {
     expect(output).toContain(`"style?": "text"`);
     expect(output).toContain(`"width?": "integer"`);
     expect(output).toContain(`"near?": "text"`);
-    expect(output).toContain(`"users"."manager_id" -> "users"."id"`);
+    expect(output).toContain(`"users"."manager_id?" -> "users"."id"`);
 
     if (Bun.which("d2") === null) return;
     const path = `${import.meta.dir}/../node_modules/.cache/erd.d2`;

@@ -98,6 +98,20 @@ describe("renderD2", () => {
     expect(output.trimEnd().endsWith(`"orders"."user_id" -> "users"."id"`)).toBe(true);
   });
 
+  test("edges name a nullable column with its marker, so D2 adds no stray row", () => {
+    const schema = schemaOf(
+      [
+        table("orders", [column("user_id", { isForeignKey: true, nullable: true })]),
+        table("users", [column("id", { isPrimaryKey: true })]),
+      ],
+      [{ table: "orders", column: "user_id", refTable: "users", refColumn: "id" }],
+    );
+    expect(renderD2(schema, BASE)).toContain(`"orders"."user_id?" -> "users"."id"`);
+    expect(renderD2(schema, { types: "base", nullableMarkers: false })).toContain(
+      `"orders"."user_id" -> "users"."id"`,
+    );
+  });
+
   test("quotes identifiers that collide with D2 keywords", () => {
     const output = renderD2(
       schemaOf([table("shape", [column("style"), column("width"), column("label")])]),

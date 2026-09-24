@@ -21,9 +21,12 @@ const constraintsOf = (column: Column): string[] => {
   return constraints;
 };
 
+/** The marker rides on the name, so it survives --types=none. */
+const columnLabel = (column: Column, options: RenderOptions): string =>
+  column.name + (options.nullableMarkers && column.nullable ? "?" : "");
+
 const renderColumn = (column: Column, options: RenderOptions): string => {
-  // The marker rides on the name, so it survives --types=none.
-  const name = quote(column.name + (options.nullableMarkers && column.nullable ? "?" : ""));
+  const name = quote(columnLabel(column, options));
   const constraints = constraintsOf(column);
   const suffix =
     constraints.length === 0
@@ -47,9 +50,16 @@ const renderD2 = (schema: Schema, options: RenderOptions): string => {
     ].join("\n"),
   );
 
+  // An edge must name a column exactly as its table declares it, marker
+  // included. Any other name makes D2 add an empty row and point there.
+  const tables = new Map(schema.tables.map(table => [table.name, table]));
+  const endpoint = (tableName: string, columnName: string): string => {
+    const column = tables.get(tableName)?.columns.find(c => c.name === columnName);
+    return `${quote(tableName)}.${quote(column ? columnLabel(column, options) : columnName)}`;
+  };
+
   const edges = schema.edges.map(
-    edge =>
-      `${quote(edge.table)}.${quote(edge.column)} -> ${quote(edge.refTable)}.${quote(edge.refColumn)}`,
+    edge => `${endpoint(edge.table, edge.column)} -> ${endpoint(edge.refTable, edge.refColumn)}`,
   );
 
   const sections = [...blocks];
