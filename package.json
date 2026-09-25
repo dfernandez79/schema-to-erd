@@ -1,13 +1,17 @@
 {
   "name": "@diegoux/schema-to-erd",
+  "version": "0.1.0",
   "license": "MIT",
   "bin": {
-    "schema-to-erd": "./src/schema-to-erd.ts"
+    "schema-to-erd": "./dist/schema-to-erd.js"
   },
+  "files": [
+    "dist"
+  ],
   "type": "module",
-  "module": "src/schema-to-erd.ts",
   "scripts": {
     "start": "bun run src/schema-to-erd.ts",
+    "build": "bunup",
     "test": "bun test",
     "test:unit": "SKIP_DB_TESTS=1 bun test",
     "typecheck": "tsc --noEmit",
@@ -15,21 +19,22 @@
     "lint:fix": "oxlint --fix",
     "fmt": "oxfmt",
     "fmt:check": "oxfmt --check",
-    "prepare": "husky"
+    "prepare": "bun run husky",
+    "prepack": "bun run build"
   },
   "dependencies": {
-    "@d2lang/d2": "0.1.34"
+    "@d2lang/d2": "0.1.34",
+    "postgres": "^3.4.9"
   },
   "devDependencies": {
     "@diegoux/oxc-config": "^0.1.0",
     "@testcontainers/postgresql": "^12.1.0",
     "@types/bun": "latest",
+    "bunup": "^0.16.32",
     "husky": "^9.1.7",
     "lint-staged": "^17.5.1",
     "oxfmt": "^0.70.0",
-    "oxlint": "^1.85.0"
-  },
-  "peerDependencies": {
+    "oxlint": "^1.85.0",
     "typescript": "^7"
   },
   "lint-staged": {
@@ -38,5 +43,8 @@
       "oxfmt --no-error-on-unmatched-pattern"
     ],
     "*.{json,jsonc,md,mdx,toml,yml,yaml}": "oxfmt --no-error-on-unmatched-pattern"
+  },
+  "engines": {
+    "node": ">=22"
   }
 }

@@ -5,13 +5,18 @@ D2 source, SVG, or Excalidraw.
 
 ## Install
 
+`schema-to-erd` runs on Node.js 22 or later. Building it takes Bun:
+
 ```bash
 bun install
+bun run build
 bun link
 ```
 
+`bun run build` bundles it into `dist/` with [bunup](https://bunup.dev), and
 `bun link` puts `schema-to-erd` on your PATH. Without it, run
-`bun run src/schema-to-erd.ts` with the same arguments.
+`node dist/schema-to-erd.js` with the same arguments, or skip the build and run
+`bun run src/schema-to-erd.ts`.
 
 ## Usage
 
@@ -111,6 +116,10 @@ case-sensitively against the `schema.table.field` path:
 bun test           # unit + integration; needs Docker
 bun run test:unit  # unit only, no Docker
 ```
+
+Both also pack the package and run its binary on the Node.js on your PATH,
+checking it against the source run on Bun. Without Node.js, those tests are
+skipped.
 
 ## License
 

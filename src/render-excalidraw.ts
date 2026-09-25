@@ -1,4 +1,6 @@
 /* oxlint-disable unicorn/no-null -- Excalidraw's file format writes absent values as null. */
+import { createHash } from "node:crypto";
+
 import type { Diagram, Point, Shape } from "@d2lang/d2";
 
 import { layOut, withD2 } from "./d2-wasm.ts";
@@ -108,7 +110,7 @@ const measure = (table: Table, options: RenderOptions): MeasuredTable => {
  * small diff.
  */
 const identify = (path: string[]): { id: string; seed: number } => {
-  const hash = Bun.hash.wyhash(JSON.stringify(path));
+  const hash = createHash("sha256").update(JSON.stringify(path)).digest().readBigUInt64BE();
   // Rough.js, which draws the strokes, takes a seed of 0 to mean random.
   return { id: hash.toString(36), seed: Number(BigInt.asUintN(31, hash)) || 1 };
 };
