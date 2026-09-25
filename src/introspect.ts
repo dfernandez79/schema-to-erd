@@ -1,4 +1,4 @@
-import type { SQL } from "bun";
+import type { Sql } from "postgres";
 
 import { RunError } from "./errors.ts";
 import { shortenSqlType } from "./shorten-sql-type.ts";
@@ -27,7 +27,7 @@ type ForeignKeyRow = {
  * Reads the schema over `pg_catalog` rather than `information_schema`, which
  * does not expose `relkind` or `relispartition`.
  */
-const introspect = async (sql: SQL, schema: string, selected?: string[]): Promise<Schema> => {
+const introspect = async (sql: Sql, schema: string, selected?: string[]): Promise<Schema> => {
   // Partitioned parents ('p') stand in for their partitions, which are
   // themselves 'r' and would otherwise each get their own box.
   const tableRows = (await sql`

@@ -1,7 +1,7 @@
 import { afterAll, beforeAll } from "bun:test";
 
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from "@testcontainers/postgresql";
-import { SQL } from "bun";
+import postgres from "postgres";
 
 import { NO_DATABASE } from "./test-database-url.ts";
 
@@ -65,9 +65,9 @@ beforeAll(async () => {
   container = await new PostgreSqlContainer("postgres:16-alpine").start();
   process.env.TEST_DATABASE_URL = container.getConnectionUri();
 
-  const sql = new SQL(container.getConnectionUri());
+  const sql = postgres(container.getConnectionUri());
   await sql.unsafe(TEST_SCHEMA_DDL);
-  await sql.close();
+  await sql.end();
 }, 180_000);
 
 afterAll(async () => {

@@ -8,10 +8,8 @@ type CapturedOutput = Output & {
 const captureOutput = (): CapturedOutput => {
   const chunks: string[] = [];
   return {
-    write: async data => {
-      const text = String(data);
+    write: text => {
       chunks.push(text);
-      return text.length;
     },
     text: () => chunks.join(""),
   };

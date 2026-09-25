@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { SQL } from "bun";
+import postgres from "postgres";
 
 import { RunError } from "./errors.ts";
 import { introspect } from "./introspect.ts";
@@ -8,9 +8,12 @@ import { NO_DATABASE, testDatabaseUrl } from "./test-helpers/test-database-url.t
 import type { Schema, Table } from "./types.ts";
 
 const introspectTestDatabase = async (schema: string, selected?: string[]): Promise<Schema> => {
-  await using sql = new SQL(testDatabaseUrl());
-  const result = await introspect(sql, schema, selected);
-  return result;
+  const sql = postgres(testDatabaseUrl());
+  try {
+    return await introspect(sql, schema, selected);
+  } finally {
+    await sql.end();
+  }
 };
 
 const byName = (tables: Table[], name: string): Table => {
