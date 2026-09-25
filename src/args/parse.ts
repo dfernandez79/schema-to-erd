@@ -1,9 +1,21 @@
+import { extname } from "node:path";
 import { parseArgs } from "node:util";
 
 import { HelpRequested, UsageError } from "../errors.ts";
-import type { Options, TypeMode } from "../types.ts";
+import type { Format, Layout, Options, TypeMode } from "../types.ts";
 
 const TYPE_MODES: readonly string[] = ["none", "base", "full"] satisfies TypeMode[];
+
+const FORMATS: readonly string[] = ["d2", "svg", "excalidraw"] satisfies Format[];
+
+const LAYOUTS: readonly string[] = ["elk", "dagre", "tala"] satisfies Layout[];
+
+/** The format an `--output` extension implies when `--format` is not given. */
+const FORMAT_BY_EXTENSION: Record<string, Format> = {
+  ".d2": "d2",
+  ".svg": "svg",
+  ".excalidraw": "excalidraw",
+};
 
 const parse = (argv: string[], env: Record<string, string | undefined>): Options => {
   let values;
@@ -18,6 +30,8 @@ const parse = (argv: string[], env: Record<string, string | undefined>): Options
         types: { type: "string" },
         "hide-types": { type: "boolean" },
         "no-nullable-markers": { type: "boolean" },
+        format: { type: "string" },
+        layout: { type: "string" },
         output: { type: "string" },
         help: { type: "boolean", short: "h" },
       },
@@ -37,6 +51,8 @@ const parse = (argv: string[], env: Record<string, string | undefined>): Options
     excludeFields: compilePatterns(values["exclude-fields"]),
     types: resolveTypeMode(values.types, values["hide-types"] ?? false),
     nullableMarkers: !values["no-nullable-markers"],
+    format: resolveFormat(values.format, values.output),
+    layout: resolveLayout(values.layout),
     output: values.output,
   };
 };
@@ -106,6 +122,29 @@ const resolveTypeMode = (types: string | undefined, hideTypes: boolean): TypeMod
     throw new UsageError(`--types must be one of ${TYPE_MODES.join(", ")}, got '${types}'`);
   }
   return types as TypeMode;
+};
+
+const resolveFormat = (format: string | undefined, output: string | undefined): Format => {
+  const implied =
+    output === undefined ? undefined : FORMAT_BY_EXTENSION[extname(output).toLowerCase()];
+  if (format === undefined) return implied ?? "d2";
+  if (!FORMATS.includes(format)) {
+    throw new UsageError(`--format must be one of ${FORMATS.join(", ")}, got '${format}'`);
+  }
+  if (implied !== undefined && implied !== format) {
+    throw new UsageError(
+      `--format=${format} conflicts with --output=${output}, which implies ${implied}`,
+    );
+  }
+  return format as Format;
+};
+
+const resolveLayout = (layout: string | undefined): Layout | undefined => {
+  if (layout === undefined) return undefined;
+  if (!LAYOUTS.includes(layout)) {
+    throw new UsageError(`--layout must be one of ${LAYOUTS.join(", ")}, got '${layout}'`);
+  }
+  return layout as Layout;
 };
 
 export { parse };

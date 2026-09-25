@@ -48,4 +48,52 @@ describe("runCliWithParsedArgs", () => {
     expect(output).toContain(`"seen_at?"`);
     expect(output).toContain(`"id" {constraint: primary_key}`);
   });
+
+  test.skipIf(NO_DATABASE)(
+    "writes an SVG when --output ends in .svg",
+    async () => {
+      const path = `${import.meta.dir}/../../node_modules/.cache/erd.svg`;
+      const stdout = captureOutput();
+      const stderr = captureOutput();
+      const code = await runCliWithParsedArgs(
+        cli,
+        [`--database=${testDatabaseUrl()}`, "--tables=users", `--output=${path}`],
+        stdout,
+        stderr,
+      );
+
+      expect(stderr.text()).toBe("");
+      expect(code).toBe(0);
+      expect(stdout.text()).toBe("");
+      const svg = await Bun.file(path).text();
+      expect(svg).toStartWith("<?xml");
+      expect(svg).toContain(">manager_id?</text>");
+    },
+    30_000,
+  );
+
+  test.skipIf(NO_DATABASE)(
+    "writes an Excalidraw scene when --output ends in .excalidraw",
+    async () => {
+      const path = `${import.meta.dir}/../../node_modules/.cache/erd.excalidraw`;
+      const stdout = captureOutput();
+      const stderr = captureOutput();
+      const code = await runCliWithParsedArgs(
+        cli,
+        [`--database=${testDatabaseUrl()}`, "--tables=users", `--output=${path}`],
+        stdout,
+        stderr,
+      );
+
+      expect(stderr.text()).toBe("");
+      expect(code).toBe(0);
+      const scene = (await Bun.file(path).json()) as {
+        type: string;
+        elements: { text?: string }[];
+      };
+      expect(scene.type).toBe("excalidraw");
+      expect(scene.elements.map(e => e.text)).toContain("manager_id?");
+    },
+    30_000,
+  );
 });

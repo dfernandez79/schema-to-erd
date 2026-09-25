@@ -98,6 +98,38 @@ describe("renderD2", () => {
     expect(output.trimEnd().endsWith(`"orders"."user_id" -> "users"."id"`)).toBe(true);
   });
 
+  test("edges name a nullable column with its marker, so D2 adds no stray row", () => {
+    const schema = schemaOf(
+      [
+        table("orders", [column("user_id", { isForeignKey: true, nullable: true })]),
+        table("users", [column("id", { isPrimaryKey: true })]),
+      ],
+      [{ table: "orders", column: "user_id", refTable: "users", refColumn: "id" }],
+    );
+    expect(renderD2(schema, BASE)).toContain(`"orders"."user_id?" -> "users"."id"`);
+    expect(renderD2(schema, { types: "base", nullableMarkers: false })).toContain(
+      `"orders"."user_id" -> "users"."id"`,
+    );
+  });
+
+  test("fixes a table's box when given its size", () => {
+    const schema = schemaOf([table("t", [column("id")]), table("u", [column("id")])]);
+    const output = renderD2(schema, {
+      ...BASE,
+      tableSizes: new Map([["t", { width: 120, height: 80 }]]),
+    });
+    expect(output).toContain(`"t": {\n  shape: sql_table\n  width: 120\n  height: 80\n  "id"`);
+    expect(output).toContain(`"u": {\n  shape: sql_table\n  "id"`);
+  });
+
+  test("names the layout engine in d2-config only when given one", () => {
+    const schema = schemaOf([table("t", [column("id")])]);
+    expect(renderD2(schema, BASE)).toStartWith(`"t": {`);
+    expect(renderD2(schema, { ...BASE, layout: "dagre" })).toStartWith(
+      `vars: {\n  d2-config: {\n    layout-engine: dagre\n  }\n}\n\n"t": {`,
+    );
+  });
+
   test("quotes identifiers that collide with D2 keywords", () => {
     const output = renderD2(
       schemaOf([table("shape", [column("style"), column("width"), column("label")])]),

@@ -1,8 +1,18 @@
-import type { Column, Schema, TypeMode } from "./types.ts";
+import type { Column, Layout, Schema, TypeMode } from "./types.ts";
 
 type RenderOptions = {
   types: TypeMode;
   nullableMarkers: boolean;
+  layout?: Layout;
+};
+
+type Constraint = "primary_key" | "foreign_key" | "unique";
+
+type Size = { width: number; height: number };
+
+type D2Options = RenderOptions & {
+  /** Box sizes by table name, for a caller that sets the text itself. */
+  tableSizes?: ReadonlyMap<string, Size>;
 };
 
 /**
@@ -12,8 +22,8 @@ type RenderOptions = {
  */
 const quote = (value: string): string => `"${value.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
 
-const constraintsOf = (column: Column): string[] => {
-  const constraints: string[] = [];
+const constraintsOf = (column: Column): Constraint[] => {
+  const constraints: Constraint[] = [];
   if (column.isPrimaryKey) constraints.push("primary_key");
   if (column.isForeignKey) constraints.push("foreign_key");
   // A primary key is already unique; saying so twice is noise.
@@ -21,9 +31,26 @@ const constraintsOf = (column: Column): string[] => {
   return constraints;
 };
 
+/**
+ * Records the layout engine for the d2 CLI, which uses it unless given
+ * --layout. D2 rejects the block in a file imported as a nested object, so it
+ * is written only on request.
+ */
+const renderLayoutConfig = (layout: Layout): string =>
+  ["vars: {", "  d2-config: {", `    layout-engine: ${layout}`, "  }", "}"].join("\n");
+
+/** The marker rides on the name, so it survives --types=none. */
+const columnLabel = (column: Column, options: RenderOptions): string =>
+  column.name + (options.nullableMarkers && column.nullable ? "?" : "");
+
+/** The type as the type mode shows it, or `undefined` when it hides types. */
+const typeLabel = (column: Column, options: RenderOptions): string | undefined => {
+  if (options.types === "none") return undefined;
+  return options.types === "full" ? column.fullType : column.baseType;
+};
+
 const renderColumn = (column: Column, options: RenderOptions): string => {
-  // The marker rides on the name, so it survives --types=none.
-  const name = quote(column.name + (options.nullableMarkers && column.nullable ? "?" : ""));
+  const name = quote(columnLabel(column, options));
   const constraints = constraintsOf(column);
   const suffix =
     constraints.length === 0
@@ -32,29 +59,46 @@ const renderColumn = (column: Column, options: RenderOptions): string => {
         ? ` {constraint: ${constraints[0]}}`
         : ` {constraint: [${constraints.join("; ")}]}`;
 
-  if (options.types === "none") return `  ${name}${suffix}`;
-  const type = options.types === "full" ? column.fullType : column.baseType;
+  const type = typeLabel(column, options);
+  if (type === undefined) return `  ${name}${suffix}`;
   return `  ${name}: ${quote(type)}${suffix}`;
 };
 
-const renderD2 = (schema: Schema, options: RenderOptions): string => {
-  const blocks = schema.tables.map(table =>
-    [
+const renderD2 = (schema: Schema, options: D2Options): string => {
+  const blocks = schema.tables.map(table => {
+    const size = options.tableSizes?.get(table.name);
+    return [
       `${quote(table.name)}: {`,
       "  shape: sql_table",
+      ...(size ? [`  width: ${size.width}`, `  height: ${size.height}`] : []),
       ...table.columns.map(column => renderColumn(column, options)),
       "}",
-    ].join("\n"),
-  );
+    ].join("\n");
+  });
+
+  // An edge must name a column exactly as its table declares it, marker
+  // included. Any other name makes D2 add an empty row and point there.
+  const tables = new Map(schema.tables.map(table => [table.name, table]));
+  const endpoint = (tableName: string, columnName: string): string => {
+    const column = tables.get(tableName)?.columns.find(c => c.name === columnName);
+    return `${quote(tableName)}.${quote(column ? columnLabel(column, options) : columnName)}`;
+  };
 
   const edges = schema.edges.map(
-    edge =>
-      `${quote(edge.table)}.${quote(edge.column)} -> ${quote(edge.refTable)}.${quote(edge.refColumn)}`,
+    edge => `${endpoint(edge.table, edge.column)} -> ${endpoint(edge.refTable, edge.refColumn)}`,
   );
 
-  const sections = [...blocks];
+  const sections = options.layout ? [renderLayoutConfig(options.layout), ...blocks] : [...blocks];
   if (edges.length > 0) sections.push(edges.join("\n"));
   return sections.join("\n\n") + "\n";
 };
 
-export { type RenderOptions, renderD2 };
+export {
+  type Constraint,
+  type RenderOptions,
+  type Size,
+  columnLabel,
+  constraintsOf,
+  renderD2,
+  typeLabel,
+};

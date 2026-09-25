@@ -4,6 +4,9 @@
   "workspaces": {
     "": {
       "name": "schema-to-erd",
+      "dependencies": {
+        "@d2lang/d2": "0.1.34",
+      },
       "devDependencies": {
         "@diegoux/oxc-config": "^0.1.0",
         "@testcontainers/postgresql": "^12.1.0",
@@ -20,6 +23,8 @@
   },
   "packages": {
     "@balena/dockerignore": ["@balena/dockerignore@1.0.2", "", {}, "sha512-wMue2Sy4GAVTk6Ic4tJVcnfdau+gx2EnG7S+uAEe+TWJFqE4YoWN4/H8MSLj4eYJKxGg26lZwboEniNiNwZQ6Q=="],
+
+    "@d2lang/d2": ["@d2lang/d2@0.1.34", "", {}, "sha512-35m2DaRUgeBy1cFbF9XEGIuaN/pMWrqkJtGj/tsq7OrU4N8degbY80Js7Mw7UeuE+fwGpxdZaGckEUVOPAj7CA=="],
 
     "@diegoux/oxc-config": ["@diegoux/oxc-config@0.1.0", "", { "peerDependencies": { "oxfmt": ">=0.67.0", "oxlint": ">=1.82.0" }, "optionalPeers": ["oxfmt", "oxlint"] }, "sha512-9N2NXZFO3+P06eC55Ikw2c3q2mJiqo+CFzjYDrYqKqD9qb8fq+IJeF+KC/aHRU0zCk1t8aDt5oXK4sqX7Ay8HQ=="],
 

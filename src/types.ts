@@ -2,6 +2,11 @@ import type { BunFile } from "bun";
 
 type TypeMode = "none" | "base" | "full";
 
+type Format = "d2" | "svg" | "excalidraw";
+
+/** The layout engines D2's WASM build has. */
+type Layout = "elk" | "dagre" | "tala";
+
 type Options = {
   connectionString: string;
   schema?: string;
@@ -9,6 +14,9 @@ type Options = {
   excludeFields?: RegExp[];
   types?: TypeMode;
   nullableMarkers?: boolean;
+  format?: Format;
+  /** Unset means ELK for SVG and Excalidraw, and no layout in D2 output. */
+  layout?: Layout;
   output?: string;
 };
 
@@ -47,4 +55,4 @@ type Schema = {
   edges: Edge[];
 };
 
-export type { Options, Column, Edge, Output, Schema, Table, TypeMode };
+export type { Options, Column, Edge, Format, Layout, Output, Schema, Table, TypeMode };

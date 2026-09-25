@@ -90,6 +90,64 @@ describe("parse: type mode", () => {
   });
 });
 
+describe("parse: format", () => {
+  test("defaults to d2", () => {
+    expect(parse([], ENV).format).toBe("d2");
+  });
+
+  test("accepts each format", () => {
+    for (const format of ["d2", "svg", "excalidraw"] as const) {
+      expect(parse([`--format=${format}`], ENV).format).toBe(format);
+    }
+  });
+
+  test("is implied by the --output extension, in any case", () => {
+    expect(parse(["--output=erd.svg"], ENV).format).toBe("svg");
+    expect(parse(["--output=ERD.SVG"], ENV).format).toBe("svg");
+    expect(parse(["--output=erd.d2"], ENV).format).toBe("d2");
+    expect(parse(["--output=docs/erd.excalidraw"], ENV).format).toBe("excalidraw");
+  });
+
+  test("falls back to d2 for an extension that implies nothing", () => {
+    expect(parse(["--output=erd.txt"], ENV).format).toBe("d2");
+    expect(parse(["--output=erd"], ENV).format).toBe("d2");
+  });
+
+  test("an explicit format goes with any extension that implies nothing", () => {
+    expect(parse(["--format=svg", "--output=erd.txt"], ENV).format).toBe("svg");
+    expect(parse(["--format=svg", "--output=erd.svg"], ENV).format).toBe("svg");
+  });
+
+  test("rejects a format the extension contradicts", () => {
+    expect(() => parse(["--format=svg", "--output=erd.d2"], ENV)).toThrow(
+      /--format=svg conflicts with --output=erd.d2/,
+    );
+    expect(() => parse(["--format=d2", "--output=erd.excalidraw"], ENV)).toThrow(UsageError);
+  });
+
+  test("rejects an unknown format", () => {
+    expect(() => parse(["--format=png"], ENV)).toThrow(UsageError);
+  });
+});
+
+describe("parse: layout", () => {
+  test("is unset unless given, so D2 output names no engine", () => {
+    expect(parse([], ENV).layout).toBeUndefined();
+  });
+
+  test("accepts each engine D2's WASM build has", () => {
+    for (const layout of ["elk", "dagre", "tala"] as const) {
+      expect(parse([`--layout=${layout}`], ENV).layout).toBe(layout);
+    }
+  });
+
+  test("rejects any other engine", () => {
+    expect(() => parse(["--layout=fdp"], ENV)).toThrow(
+      /--layout must be one of elk, dagre, tala, got 'fdp'/,
+    );
+  });
+});
+
 describe("parse: other flags", () => {
   test("nullable markers are on unless opted out", () => {
     expect(parse([], ENV).nullableMarkers).toBe(true);
