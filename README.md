@@ -37,49 +37,28 @@ The connection is specified by `--database` and falls back to `$DATABASE_URL`.
 | `svg`        | SVG, rendered by D2's bundled WebAssembly build. No `d2` install needed. |
 | `excalidraw` | Excalidraw scene, to open and keep editing in Excalidraw.                |
 
-`--format` picks the format. Without it, the `--output` extension decides
-(`.d2`, `.svg`, `.excalidraw`), and any other extension, or stdout, gets D2. A
-`--format` that contradicts the extension is a usage error:
-`--format=svg --output=erd.d2` fails instead of writing SVG into a `.d2` file.
+`--format` sets the format. If it’s omitted, the `--output` extension determines
+the format (`.d2`, `.svg`, or `.excalidraw`); any other extension, or stdout,
+defaults to D2. If `--format` conflicts with the extension, it’s a usage error:
+`--format=svg --output=erd.d2` fails rather than writing SVG to a `.d2` file.
 
 Excalidraw output uses the same layout as SVG, with tables sized for
-Excalidraw's hand-drawn font. Each table is a group. Element ids come from table
-and column names, so the same schema always produces the same file and a schema
-change produces a small diff.
+Excalidraw's hand-drawn font. Each table is a group. Element IDs are derived
+from table and column names, so the same schema always produces the same file,
+and a schema change produces a small diff.
 
 ## Layout
 
-`--layout` picks the engine that places the tables and routes the arrows: `elk`,
-the default, `dagre` or `tala`. D2's bundled WebAssembly build has all three.
+`--layout` selects the engine that places tables and routes arrows: `elk` (the
+default), `dagre`, or `tala`. The tool uses a bundled D2 in WebAssembly. If you
+specify a layout for a D2 output, the `.d2` file will include a config block
+that sets the layout (you can override it via the d2 CLI).
 
-With `elk` and `tala`, foreign key arrows run in right angles from the column's
-row to the referenced row, and in Excalidraw they are elbow arrows that re-route
-when a table moves. With `dagre`, they are curves that join tables rather than
-rows, in SVG and Excalidraw alike.
+If you need to refine the output style, use d2.
 
-TALA is slow in WebAssembly: about 4 seconds for 14 tables and a minute and a
-half for 60, where ELK takes about a second either way. Recent `d2` releases
-bundle TALA too and run it about ten times faster, so for a large schema, write
-D2 and render it with the `d2` CLI:
-
-```bash
-schema-to-erd --layout=tala --format=d2 | d2 - erd.svg
-```
-
-D2 output names no engine unless you pass `--layout`. With it, the file starts
-with a `d2-config` block, and the `d2` CLI lays the file out with that engine
-unless it gets `--layout` itself:
-
-```d2
-vars: {
-  d2-config: {
-    layout-engine: elk
-  }
-}
-```
-
-D2 rejects the block in a file imported as a nested object (`erd: @erd`), but a
-spread import (`...@erd`) works.
+The default layout is `elk` because it’s slightly faster with the bundled
+WebAssembly d2 package. However, in many cases, `tala` will produce better
+results.
 
 ## Options
 
