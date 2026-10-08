@@ -9,6 +9,9 @@
     "dist"
   ],
   "type": "module",
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "start": "bun run src/schema-to-erd.ts",
     "build": "bunup",
