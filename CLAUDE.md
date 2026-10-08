@@ -11,6 +11,16 @@ Default to using Bun instead of Node.js:
 For more information, read the Bun API docs in
 `node_modules/bun-types/docs/**.mdx`.
 
+## Runtime
+
+The package ships as `dist/schema-to-erd.js`, built by
+[bunup](https://bunup.dev) (`bun run build`) to run on Node.js. So the code it
+bundles, everything under `src/` but the tests and `src/test-helpers/`, must not
+use Bun's APIs: use `node:` modules, and `postgres` for PostgreSQL. oxlint
+rejects the `Bun` global and imports from `bun` there. Tests run on Bun and may
+use both. `src/schema-to-erd.test.ts` packs the package and runs its binary on
+Node.
+
 ## Linting and formatting
 
 This project uses [oxlint](https://oxc.rs) for linting and

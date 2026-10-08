@@ -5,12 +5,12 @@ import { parse } from "./parse.ts";
 
 const runCliWithParsedArgs = async (
   impl: (options: Options, stdout: Output, stderr: Output) => Promise<number>,
-  argv = Bun.argv.slice(2),
-  stdout: Output = Bun.stdout,
-  stderr: Output = Bun.stderr,
+  argv = process.argv.slice(2),
+  stdout: Output = process.stdout,
+  stderr: Output = process.stderr,
 ): Promise<number> => {
   try {
-    const options = parse(argv, Bun.env);
+    const options = parse(argv, process.env);
     return impl(options, stdout, stderr);
   } catch (error) {
     if (error instanceof HelpRequested) {

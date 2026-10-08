@@ -1,7 +1,6 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
 import { runCliWithParsedArgs } from "./args/run-cli-with-parsed-args.ts";
 import { cli } from "./cli.ts";
 
-if (import.meta.main) {
-  process.exit(await runCliWithParsedArgs(cli));
-}
+// Not process.exit(), which would cut short output still flushing to a pipe.
+process.exitCode = await runCliWithParsedArgs(cli);

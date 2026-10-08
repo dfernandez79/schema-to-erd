@@ -1,4 +1,6 @@
-import { SQL } from "bun";
+import { writeFile } from "node:fs/promises";
+
+import postgres from "postgres";
 
 import { RunError } from "./errors.ts";
 import { excludeFields } from "./exclude-fields.ts";
@@ -33,16 +35,15 @@ const cli = async (
   stderr: Output,
 ): Promise<number> => {
   try {
-    await using sql = new SQL(connectionString);
-    const dbSchema = await introspect(sql, schema, tables);
+    const dbSchema = await readSchema(connectionString, schema, tables);
     const result = await RENDERERS[format](excludeFields(dbSchema, excludeFieldsPatterns), {
       types,
       nullableMarkers,
       layout,
     });
 
-    const output = outputFile ? Bun.file(outputFile) : stdout;
-    await output.write(result);
+    if (outputFile) await writeFile(outputFile, result);
+    else stdout.write(result);
   } catch (error) {
     const message = error instanceof RunError ? error.message : (error as Error).message;
     stderr.write(`schema-to-erd: ${message}\n`);
@@ -50,6 +51,21 @@ const cli = async (
   }
 
   return 0;
+};
+
+/** Introspects over a connection that is closed before the diagram renders. */
+const readSchema = async (
+  connectionString: string,
+  schema: string,
+  tables?: string[],
+): Promise<Schema> => {
+  // postgres.js logs server notices to stdout, where they'd corrupt the diagram.
+  const sql = postgres(connectionString, { onnotice: () => {} });
+  try {
+    return await introspect(sql, schema, tables);
+  } finally {
+    await sql.end();
+  }
 };
 
 export { cli };

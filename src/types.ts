@@ -1,5 +1,3 @@
-import type { BunFile } from "bun";
-
 type TypeMode = "none" | "base" | "full";
 
 type Format = "d2" | "svg" | "excalidraw";
@@ -20,7 +18,8 @@ type Options = {
   output?: string;
 };
 
-type Output = Pick<BunFile, "write">;
+/** Where the command writes: `process.stdout` and `process.stderr`, or a test's capture. */
+type Output = { write: (text: string) => unknown };
 
 type Column = {
   name: string;

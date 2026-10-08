@@ -3,16 +3,6 @@
 Generates an entity-relationship diagram from a live PostgreSQL schema and emits
 D2 source, SVG, or Excalidraw.
 
-## Install
-
-```bash
-bun install
-bun link
-```
-
-`bun link` puts `schema-to-erd` on your PATH. Without it, run
-`bun run src/schema-to-erd.ts` with the same arguments.
-
 ## Usage
 
 ```bash
@@ -105,12 +95,32 @@ case-sensitively against the `schema.table.field` path:
 | 1    | Runtime failure: a table in `--tables` does not exist, the schema is empty, or the connection failed. |
 | 2    | Usage error. Prints help to stderr.                                                                   |
 
+## Install
+
+`schema-to-erd` runs on Node.js 22 or later. However, the project uses Bun for
+development:
+
+```bash
+bun install
+bun run build
+bun link
+```
+
+`bun run build` bundles it into `dist/` with [bunup](https://bunup.dev), and
+`bun link` puts `schema-to-erd` on your PATH. Without it, run
+`node dist/schema-to-erd.js` with the same arguments, or skip the build and run
+`bun run src/schema-to-erd.ts`.
+
 ## Tests
 
 ```bash
 bun test           # unit + integration; needs Docker
 bun run test:unit  # unit only, no Docker
 ```
+
+Both also pack the package and run its binary on the Node.js on your PATH,
+checking it against the source run on Bun. Without Node.js, those tests are
+skipped.
 
 ## License
 
