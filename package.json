@@ -1,7 +1,13 @@
 {
   "name": "@diegoux/schema-to-erd",
   "version": "0.1.0",
+  "description": "Generates an entity-relationship diagram from a live PostgreSQL schema and emits D2 source, SVG, or Excalidraw.",
   "license": "MIT",
+  "author": "Diego Fernandez",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dfernandez79/schema-to-erd.git"
+  },
   "bin": {
     "schema-to-erd": "./dist/schema-to-erd.js"
   },
