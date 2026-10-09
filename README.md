@@ -3,6 +3,23 @@
 Generates an entity-relationship diagram from a live PostgreSQL schema and emits
 D2 source, SVG, or Excalidraw.
 
+## Install
+
+`schema-to-erd` runs on Node.js 22 or later, or on Bun. Run it without
+installing:
+
+```bash
+npx @diegoux/schema-to-erd --help
+bunx @diegoux/schema-to-erd --help
+```
+
+Or install it globally:
+
+```bash
+npm install --global @diegoux/schema-to-erd
+bun add --global @diegoux/schema-to-erd
+```
+
 ## Usage
 
 ```bash
@@ -95,10 +112,9 @@ case-sensitively against the `schema.table.field` path:
 | 1    | Runtime failure: a table in `--tables` does not exist, the schema is empty, or the connection failed. |
 | 2    | Usage error. Prints help to stderr.                                                                   |
 
-## Install
+## Build from source
 
-`schema-to-erd` runs on Node.js 22 or later. However, the project uses Bun for
-development:
+The project uses Bun for development:
 
 ```bash
 bun install
