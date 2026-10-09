@@ -1,6 +1,6 @@
 {
   "name": "@diegoux/schema-to-erd",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Generates an entity-relationship diagram from a live PostgreSQL schema and emits D2 source, SVG, or Excalidraw.",
   "license": "MIT",
   "author": "Diego Fernandez",
